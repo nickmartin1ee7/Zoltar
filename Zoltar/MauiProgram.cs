@@ -62,7 +62,7 @@ public static class MauiProgram
             .AddJsonStream(configStream)
             .Build();
 
-        var aacConnStr = tempConfig.GetConnectionString("aac-zoltar");
+        var aacConnStr = tempConfig.GetConnectionString("aac");
 
         builder.Configuration
             .AddAzureAppConfiguration(aacConnStr);
