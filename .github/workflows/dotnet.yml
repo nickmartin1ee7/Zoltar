@@ -21,9 +21,8 @@ jobs:
           $appSettings = Get-Content $appSettingsPath -Raw | ConvertFrom-Json
           echo "Original: $appSettings"
           
-          $appSettings.SignalR.HubUrl = "${{ secrets.HubUrl }}"
-          $appSettings.Telemetry.LoggingUrl = "${{ secrets.LoggingUrl }}"
-          $appSettings.Telemetry.LoggingApiKey = "${{ secrets.LoggingApiKey }}"
+          $appSettings.ConnectionStrings.aac = "${{ secrets.aac }}"
+          
           $replacedAppSettings = $appSettings | ConvertTo-Json
           echo "Replaced: $replacedAppSettings"
           
