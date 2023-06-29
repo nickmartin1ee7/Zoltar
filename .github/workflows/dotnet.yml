@@ -1,0 +1,107 @@
+name: CI/CD
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: 6.0.x
+    - name: Restore dependencies
+      run: dotnet restore ./WebApplication/WebApplication.csproj
+    - name: Build
+      run: dotnet build --no-restore ./WebApplication/WebApplication.csproj
+    - name: Docker Login
+      uses: docker/login-action@v1.10.0
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_ACCESSTOKEN }}
+    - name: Docker Setup Buildx
+      uses: docker/setup-buildx-action@v1.6.0
+    - name: Build Docker Image (WebApplication)
+      if: ${{ github.ref == 'refs/heads/main' }}
+      run: docker buildx build --platform linux/arm64,linux/amd64 -f "WebApplication/Dockerfile" --force-rm -t nickmartin1ee7/chattyapi:latest --push .
+  apideployment:
+    runs-on: self-hosted
+    needs: api
+    steps:
+    - name: Trigger Production Image Pull
+      if: ${{ github.ref == 'refs/heads/main' }}
+      run: curl --location -k --request POST '${{ secrets.PROD_WEBHOOK_URI }}'    
+  android:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3      
+      - name: Print Directory Structure
+        shell: pwsh
+        run: |
+          Get-ChildItem -Recurse
+      - name: Replace values in appsettings.json
+        run: |
+          $appSettingsPath = (Get-ChildItem -Path . -Filter appsettings.json -Recurse -Force | Select-Object -First 1).FullName
+          echo "Reading from: $manifestPath"
+          $appSettings = Get-Content $appSettingsPath -Raw | ConvertFrom-Json
+          echo "Original: $appSettings"
+          
+          $appSettings.SignalR.HubUrl = "${{ secrets.HubUrl }}"
+          $appSettings.Telemetry.LoggingUrl = "${{ secrets.LoggingUrl }}"
+          $appSettings.Telemetry.LoggingApiKey = "${{ secrets.LoggingApiKey }}"
+          $replacedAppSettings = $appSettings | ConvertTo-Json
+          echo "Replaced: $replacedAppSettings"
+          
+          $replacedAppSettings | Set-Content $appSettingsPath
+          echo "Read-back appsettings.json:"
+          Get-Content $appSettingsPath
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v2
+        with:
+          dotnet-version: 6.0.x
+      - uses: actions/setup-java@v2
+        with:
+          distribution: 'microsoft'
+          java-version: '11'
+      - name: Install MAUI Workloads
+        run: |
+          dotnet workload install android --ignore-failed-sources
+          dotnet workload install maui --ignore-failed-sources
+      - name: Set Android version
+        run: |
+          $manifestPath = (Get-ChildItem -Path . -Filter AndroidManifest.xml -Recurse -ErrorAction SilentlyContinue -Force | Select-Object -First 1).FullName
+          echo "Reading from: $manifestPath"
+          
+          $versionName = "${{ env.APP_VERSION }}.${{ github.run_number }}"
+          $versionCode = "${{ github.run_number }}"
+
+          # Read the AndroidManifest.xml file
+          $manifestContent = Get-Content -Path $manifestPath
+
+          # Find and replace the version-name
+          $manifestContent = $manifestContent -replace '(?<=version-name=")[^"]+', $versionName
+
+          # Find and replace the version-code
+          $manifestContent = $manifestContent -replace '(?<=versionCode=")[^"]+', $versionCode
+
+          # Write the modified content back to the AndroidManifest.xml file
+          $manifestContent | Set-Content -Path $manifestPath
+      - name: Publish
+        run: dotnet publish ./Zoltar/Zoltar.csproj -f net6.0-android -f net7.0-ios -c Release -o release
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v3.0.0
+        with:
+          path: "release/*-Signed.apk"
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: "v${{ vars.APP_VERSION }}.${{ github.run_number }}"
+          name: Zoltar v${{ vars.APP_VERSION }}.${{ github.run_number }}
+          draft: false
+          prerelease: false
+          files: "release/*-Signed.apk"
+          generate_release_notes: true
