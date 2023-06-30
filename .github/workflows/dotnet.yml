@@ -43,7 +43,7 @@ jobs:
           dotnet workload install maui --ignore-failed-sources
       - name: Set Android version
         run: |
-          $manifestPath = (Get-ChildItem -Path . -Filter AndroidManifest.xml -Recurse -ErrorAction SilentlyContinue -Force | Select-Object -First 1).FullName
+          $manifestPath = (Get-ChildItem -Path . -Filter Zoltar.csproj -Recurse -ErrorAction SilentlyContinue -Force | Select-Object -First 1).FullName
           echo "Reading from: $manifestPath"
           
           $versionName = "${{ env.APP_VERSION }}.${{ github.run_number }}"
@@ -52,11 +52,11 @@ jobs:
           # Read the AndroidManifest.xml file
           $manifestContent = Get-Content -Path $manifestPath
 
-          # Find and replace the version-name
-          $manifestContent = $manifestContent -replace '(?<=version-name=")[^"]+', $versionName
+          # Find and replace the displayed version
+          $manifestContent = $manifestContent -replace "<ApplicationDisplayVersion>\d+\.\d+</ApplicationDisplayVersion>", "<ApplicationDisplayVersion>$versionName</ApplicationDisplayVersion>"
 
-          # Find and replace the version-code
-          $manifestContent = $manifestContent -replace '(?<=versionCode=")[^"]+', $versionCode
+          # Find and replace the version
+          $manifestContent = $manifestContent -replace "<ApplicationVersion>\d+</ApplicationVersion>", "<ApplicationVersion>$versionCode</ApplicationVersion>"
 
           # Write the modified content back to the AndroidManifest.xml file
           $manifestContent | Set-Content -Path $manifestPath
