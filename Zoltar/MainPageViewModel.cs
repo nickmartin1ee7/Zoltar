@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 
 using Microsoft.Extensions.Logging;
+using Microsoft.FeatureManagement;
 
 using Rystem.OpenAi;
 using Rystem.OpenAi.Completion;
@@ -18,6 +19,7 @@ public class MainPageViewModel : INotifyPropertyChanged
     private readonly ILogger<MainPageViewModel> _logger;
     private readonly IOpenAi _ai;
     private readonly ZoltarSettings _settings;
+    private readonly IFeatureManager _featureManager;
 
     private string _fortuneText;
     private string _waitTimeText;
@@ -28,9 +30,11 @@ public class MainPageViewModel : INotifyPropertyChanged
 
     public MainPageViewModel(IOpenAiFactory openAiFactory,
         ILogger<MainPageViewModel> logger,
-        ZoltarSettings settings)
+        ZoltarSettings settings,
+        IFeatureManager featureManager)
     {
         _settings = settings;
+        _featureManager = featureManager;
         _logger = logger;
         _ai = openAiFactory.Create();
 
@@ -57,6 +61,9 @@ public class MainPageViewModel : INotifyPropertyChanged
         try
         {
             WaitTimeVisible = false;
+
+            if (await _featureManager.IsEnabledAsync("zoltarunlimited"))
+                return true;
 
             var lastFortune = await SecureStorage.GetAsync(LAST_FORTUNE_USE_KEY);
 

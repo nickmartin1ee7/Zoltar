@@ -15,7 +15,7 @@
 		<ApplicationTitle>Zoltar</ApplicationTitle>
 
 		<!-- App Identifier -->
-		<ApplicationId>com.companyname.zoltar</ApplicationId>
+		<ApplicationId>com.gitgoodsoftware.zoltar</ApplicationId>
 		<ApplicationIdGuid>9ef0428b-ed0e-46f0-a864-fb3e506fae12</ApplicationIdGuid>
 
 		<!-- Versions -->
@@ -73,14 +73,18 @@
 
 	<ItemGroup>
 		<!-- App Icon -->
-		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
+		<MauiIcon Include="Resources\AppIcon\appiconfg.png">
+		  <Color>#512BD4</Color>
+		  <ForegroundFile>Resources\AppIcon\appiconfg.png</ForegroundFile>
+		</MauiIcon>
+		<MauiIcon Include="Resources\AppIcon\appicon.png" ForegroundFile="Resources\AppIcon\appiconfg.png" Color="#000000" />
 
 		<!-- Splash Screen -->
-		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
+		<MauiSplashScreen Include="Resources\Splash\splash.png" Color="#000000" BaseSize="128,128" />
 
 		<!-- Images -->
 		<MauiImage Include="Resources\Images\*" />
-		<MauiImage Update="Resources\Images\dotnet_bot.svg" BaseSize="168,208" />
+		<!--<MauiImage Update="Resources\Images\dotnet_bot.svg" BaseSize="168,208" />-->
 
 		<!-- Custom Fonts -->
 		<MauiFont Include="Resources\Fonts\*" />
@@ -94,6 +98,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <None Remove="Resources\AppIcon\appiconfg.png" />
 	  <None Remove="Resources\Images\zoltar.gif" />
 	  <None Remove="Resources\Raw\appsettings.json" />
 	</ItemGroup>
@@ -115,6 +120,7 @@
 		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="7.0.4" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="7.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="7.0.0" />
+		<PackageReference Include="Microsoft.FeatureManagement" Version="2.6.1" />
 		<PackageReference Include="Rystem.OpenAi" Version="3.3.0" />
 		<PackageReference Include="West.Extensions.Logging.AppCenter" Version="2.2.2" />
 	</ItemGroup>

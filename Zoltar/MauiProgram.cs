@@ -2,6 +2,7 @@
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.FeatureManagement;
 
 namespace Zoltar;
 
@@ -42,6 +43,7 @@ public static class MauiProgram
                 loggingBuilder.AddAppCenter(appCenterLoggerOptions =>
                     appCenterLoggerOptions.AppCenterAndroidSecret = zoltarSettings.AppCenter.Secret);
             })
+            .AddFeatureManagement()
             ;
 
         return builder.Build();
@@ -65,6 +67,10 @@ public static class MauiProgram
         var aacConnStr = tempConfig.GetConnectionString("aac");
 
         builder.Configuration
-            .AddAzureAppConfiguration(aacConnStr);
+            .AddAzureAppConfiguration(options =>
+            {
+                options.Connect(aacConnStr)
+                    .UseFeatureFlags();
+            });
     }
 }
