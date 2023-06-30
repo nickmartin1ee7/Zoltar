@@ -75,13 +75,3 @@ jobs:
           prerelease: false
           files: "release/*-Signed.apk"
           generate_release_notes: true
-      - name: Create App Center Release
-        uses: wzieba/AppCenter-Github-Action@v1.3.3
-        with:
-          appName: Zoltar
-          token: ${{secrets.APP_CENTER_TOKEN}}
-          group: Collaborators
-          file: "release/*-Signed.apk"
-          notifyTesters: true
-          debug: false
-
