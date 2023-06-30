@@ -46,7 +46,7 @@ jobs:
           $manifestPath = (Get-ChildItem -Path . -Filter Zoltar.csproj -Recurse -ErrorAction SilentlyContinue -Force | Select-Object -First 1).FullName
           echo "Reading from: $manifestPath"
           
-          $versionName = "${{ env.APP_VERSION }}.${{ github.run_number }}"
+          $versionName = "${{ vars.APP_VERSION }}.${{ github.run_number }}"
           $versionCode = "${{ github.run_number }}"
 
           # Read the AndroidManifest.xml file
