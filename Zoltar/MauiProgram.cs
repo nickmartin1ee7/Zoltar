@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 
+using Microsoft.AppCenter.Distribute;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.FeatureManagement;
@@ -28,6 +29,8 @@ public static class MauiProgram
         var zoltarSettings = builder.Configuration
             .GetSection(nameof(ZoltarSettings))
             .Get<ZoltarSettings>() ?? throw new ArgumentNullException(nameof(ZoltarSettings));
+
+        Distribute.SetEnabledAsync(true).GetAwaiter().GetResult();
 
         builder.Services
             .AddOpenAi(settings =>

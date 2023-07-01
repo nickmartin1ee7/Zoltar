@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 
+using Microsoft.AppCenter.Distribute;
 using Microsoft.Extensions.Logging;
 using Microsoft.FeatureManagement;
 
@@ -169,6 +170,8 @@ public class MainPageViewModel : INotifyPropertyChanged
 
         if (_initialized)
             return;
+
+        Distribute.CheckForUpdate();
 
         await TrySetLastFortuneTextAsync();
 
