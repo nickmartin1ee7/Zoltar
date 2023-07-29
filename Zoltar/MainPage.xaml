@@ -5,7 +5,6 @@
              x:Class="Zoltar.MainPage"
              x:DataType="zoltar:MainPageViewModel"
              Title="Zoltar">
-
     <ScrollView>
         <Grid
             Padding="30"
@@ -81,5 +80,4 @@
 
         </Grid>
     </ScrollView>
-
 </ContentPage>

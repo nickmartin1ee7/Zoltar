@@ -125,6 +125,10 @@
 		<PackageReference Include="West.Extensions.Logging.AppCenter" Version="2.2.2" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Resources\Images\" />
+	</ItemGroup>
+
 	<ProjectExtensions><VisualStudio><UserProperties XamarinHotReloadDebuggerTimeoutExceptionZoltarHideInfoBar="True" /></VisualStudio></ProjectExtensions>
 
 </Project>
