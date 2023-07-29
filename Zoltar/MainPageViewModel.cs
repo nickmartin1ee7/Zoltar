@@ -16,6 +16,7 @@ public class MainPageViewModel : INotifyPropertyChanged
 
     private const string LAST_FORTUNE_KEY = "LAST_FORTUNE";
     private const string LAST_FORTUNE_USE_KEY = "LAST_FORTUNE_USE";
+    private const int MAX_SPECIAL_INTERACTIONS = 5;
 
     private readonly ILogger<MainPageViewModel> _logger;
     private readonly IOpenAi _ai;
@@ -28,6 +29,7 @@ public class MainPageViewModel : INotifyPropertyChanged
     private bool _isLoading;
     private bool _waitTimeVisible;
     private bool _initialized;
+    private int _specialInteractions;
 
     public MainPageViewModel(IOpenAiFactory openAiFactory,
         ILogger<MainPageViewModel> logger,
@@ -57,13 +59,15 @@ public class MainPageViewModel : INotifyPropertyChanged
         }
     }
 
-    private async Task<bool> CanReadFortuneAsync(bool autoUpdateWhenAllowed = false)
+    private async Task<bool> CanReadFortuneAsync(bool autoUpdateWhenAllowed = false, bool skipWait = false)
     {
+        _specialInteractions = 0;
+
         try
         {
             WaitTimeVisible = false;
 
-            if (await _featureManager.IsEnabledAsync("zoltarunlimited"))
+            if (await _featureManager.IsEnabledAsync(Constants.FEATURE_ZOLTAR_UNLIMITED))
                 return true;
 
             var lastFortune = await SecureStorage.GetAsync(LAST_FORTUNE_USE_KEY);
@@ -89,11 +93,10 @@ public class MainPageViewModel : INotifyPropertyChanged
                 });
             }
 
-#if DEBUG
-            return true;
-#else
+            if (skipWait)
+                return true;
+
             return false;
-#endif
         }
         catch (Exception exception)
         {
@@ -104,12 +107,15 @@ public class MainPageViewModel : INotifyPropertyChanged
 
     private async Task GetFortuneAsync()
     {
+        if (!FortuneAllowed)
+            return;
+
         FortuneAllowed = false;
         IsLoading = true;
 
         _logger.LogInformation("User requested fortune");
 
-        CompletionResult? result = null;
+        CompletionResult result = null;
 
         try
         {
@@ -179,6 +185,20 @@ public class MainPageViewModel : INotifyPropertyChanged
 
         _logger.LogInformation("Application initialized");
     }
+    public async Task InvokeSpecialInteractionAsync()
+    {
+        if (!(await _featureManager.IsEnabledAsync(Constants.FEATURE_ZOLTAR_SECRET_INTERACTION)))
+            return;
+
+        _specialInteractions++;
+
+        if (_specialInteractions < MAX_SPECIAL_INTERACTIONS)
+            return;
+
+        _specialInteractions = 0;
+        FortuneAllowed = await CanReadFortuneAsync(skipWait: true);
+        WaitTimeText = "Zoltar grants you another fortune";
+    }
 
     public string FortuneText
     {
@@ -199,6 +219,7 @@ public class MainPageViewModel : INotifyPropertyChanged
             if (value == _fortuneAllowed) return;
             _fortuneAllowed = value;
             OnPropertyChanged();
+            ((Command)FortuneCommand).ChangeCanExecute();
         }
     }
 
@@ -242,13 +263,5 @@ public class MainPageViewModel : INotifyPropertyChanged
     protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-
-    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string propertyName = null)
-    {
-        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
-        field = value;
-        OnPropertyChanged(propertyName);
-        return true;
     }
 }

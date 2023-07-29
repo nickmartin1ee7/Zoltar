@@ -18,6 +18,7 @@
                 HorizontalOptions="Fill"
                 VerticalOptions="Fill"
                 Margin="0,0,0,25"
+                Focused="SpecialInteraction_OnClicked"
                 BackgroundColor="Transparent">
                 <WebView.Source>
                     <HtmlWebViewSource>
@@ -47,7 +48,7 @@
                 Grid.Row="2"
                 HorizontalOptions="Center"
                 IsRunning="{Binding IsLoading}"
-            />
+                />
 
             <Editor
                 Grid.Column="0"
@@ -56,6 +57,7 @@
                 AutoSize="TextChanges"
                 FontSize="Medium"
                 IsReadOnly="True"
+                IsSpellCheckEnabled="False"
                 Placeholder="Zoltar awaits your command."
                 Margin="0,0,0,25"
                 HorizontalTextAlignment="Center"/>
@@ -70,14 +72,16 @@
                 HorizontalOptions="Center" />
 
             <Button
+                x:Name="FortuneButton"
                 Grid.Column="0"
                 Grid.Row="4"
                 IsEnabled="{Binding FortuneAllowed}"
                 Text="Tell me my fortune"
                 Command="{Binding FortuneCommand}"
                 Margin="0,0,0,25"
-                HorizontalOptions="Center" />
-
+                HorizontalOptions="Center"
+                Clicked="SpecialInteraction_OnClicked"
+                />
         </Grid>
     </ScrollView>
 </ContentPage>

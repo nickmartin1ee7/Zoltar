@@ -15,4 +15,10 @@ public partial class MainPage : ContentPage
         await _vm.InitializeAsync();
         base.OnAppearing();
     }
+
+    private async void SpecialInteraction_OnClicked(object sender, EventArgs e)
+    {
+        FortuneButton.IsEnabled = true;
+        await _vm.InvokeSpecialInteractionAsync();
+    }
 }
