@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Windows.Input;
 
 using Microsoft.AppCenter.Distribute;
@@ -13,9 +14,6 @@ namespace Zoltar;
 
 public class MainPageViewModel : INotifyPropertyChanged
 {
-
-    private const string LAST_FORTUNE_KEY = "LAST_FORTUNE";
-    private const string LAST_FORTUNE_USE_KEY = "LAST_FORTUNE_USE";
     private const int MAX_SPECIAL_INTERACTIONS = 5;
 
     private readonly ILogger<MainPageViewModel> _logger;
@@ -30,6 +28,7 @@ public class MainPageViewModel : INotifyPropertyChanged
     private bool _waitTimeVisible;
     private bool _initialized;
     private int _specialInteractions;
+    private UserProfile _userProfile;
 
     public MainPageViewModel(IOpenAiFactory openAiFactory,
         ILogger<MainPageViewModel> logger,
@@ -44,13 +43,23 @@ public class MainPageViewModel : INotifyPropertyChanged
         FortuneCommand = new Command(
             execute: async () => await GetFortuneAsync(),
             canExecute: () => FortuneAllowed);
+
+        OnboardCommand = new Command(
+            execute: async () => await OnboardUserAsync());
+    }
+
+    public Command OnboardCommand { get; set; }
+
+    private async Task OnboardUserAsync()
+    {
+        await Shell.Current.GoToAsync($"///{nameof(OnboardingPage)}");
     }
 
     private async Task TrySetLastFortuneTextAsync()
     {
         try
         {
-            FortuneText = await SecureStorage.GetAsync(LAST_FORTUNE_KEY);
+            FortuneText = await SecureStorage.GetAsync(Constants.LAST_FORTUNE_KEY);
             _logger.LogInformation("Loaded last fortune from storage successfully");
         }
         catch (Exception exception)
@@ -70,7 +79,7 @@ public class MainPageViewModel : INotifyPropertyChanged
             if (await _featureManager.IsEnabledAsync(Constants.FEATURE_ZOLTAR_UNLIMITED))
                 return true;
 
-            var lastFortune = await SecureStorage.GetAsync(LAST_FORTUNE_USE_KEY);
+            var lastFortune = await SecureStorage.GetAsync(Constants.LAST_FORTUNE_USE_KEY);
 
             if (string.IsNullOrEmpty(lastFortune))
                 return true;
@@ -157,8 +166,8 @@ public class MainPageViewModel : INotifyPropertyChanged
             FortuneText = formattedResponse;
         }
 
-        await SecureStorage.SetAsync(LAST_FORTUNE_USE_KEY, DateTime.Now.ToString());
-        await SecureStorage.SetAsync(LAST_FORTUNE_KEY, FortuneText);
+        await SecureStorage.SetAsync(Constants.LAST_FORTUNE_USE_KEY, DateTime.Now.ToString());
+        await SecureStorage.SetAsync(Constants.LAST_FORTUNE_KEY, FortuneText);
 
         _ = Task.Run(async () =>
             await TextToSpeech.SpeakAsync(FortuneText));
@@ -172,6 +181,7 @@ public class MainPageViewModel : INotifyPropertyChanged
 
     public async Task InitializeAsync()
     {
+        await TryOnboardNewUserAsync();
         FortuneAllowed = await CanReadFortuneAsync(autoUpdateWhenAllowed: true);
 
         if (_initialized)
@@ -185,6 +195,27 @@ public class MainPageViewModel : INotifyPropertyChanged
 
         _logger.LogInformation("Application initialized");
     }
+
+    public async Task TryOnboardNewUserAsync()
+    {
+        try
+        {
+            var userProfileJson = await SecureStorage.GetAsync(Constants.USER_PROFILE_KEY);
+
+            if (string.IsNullOrEmpty(userProfileJson))
+            {
+                await OnboardUserAsync();
+                userProfileJson = await SecureStorage.GetAsync(Constants.USER_PROFILE_KEY);
+            }
+
+            _userProfile = JsonSerializer.Deserialize<UserProfile>(userProfileJson);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to load user profile from storage");
+        }
+    }
+
     public async Task InvokeSpecialInteractionAsync()
     {
         if (!(await _featureManager.IsEnabledAsync(Constants.FEATURE_ZOLTAR_SECRET_INTERACTION)))
@@ -197,7 +228,7 @@ public class MainPageViewModel : INotifyPropertyChanged
 
         _specialInteractions = 0;
         FortuneAllowed = await CanReadFortuneAsync(skipWait: true);
-        WaitTimeText = "Zoltar grants you another fortune";
+        WaitTimeText = "Zoltar grants you another fortune.";
     }
 
     public string FortuneText
