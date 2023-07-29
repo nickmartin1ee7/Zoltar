@@ -4,7 +4,16 @@ public record UserProfile
 {
     public string Name { get; set; }
     public DateTime Birthday { get; set; }
-
+    public string Luck => $"{Random.Shared.NextDouble() switch
+    {
+        >= .85 => "incredibly fortunate",
+        <= .10 => "incredibly unfortunate",
+        >= .70 => "very fortunate",
+        <= .20 => "very unfortunate",
+        >= .60 => "somewhat fortunate",
+        <= .30 => "somewhat unfortunate",
+        _ => "average",
+    }}";
     public string Sign
     {
         get

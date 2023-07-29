@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
 using System.Windows.Input;
 
@@ -128,7 +129,7 @@ public class MainPageViewModel : INotifyPropertyChanged
 
         try
         {
-            result = await _ai.Completion.Request(_settings.OpenAi.Prompt)
+            result = await _ai.Completion.Request(BuildPrompt(_userProfile, _settings.OpenAi.Prompt))
                 .WithModel(TextModelType.DavinciText3)
                 .SetMaxTokens(_settings.OpenAi.MaxTokens)
                 .ExecuteAsync();
@@ -154,17 +155,7 @@ public class MainPageViewModel : INotifyPropertyChanged
             .TrimStart()
             .TrimEnd();
 
-        if (formattedResponse.Count(c => c == '"') == 2)
-        {
-            Index start = formattedResponse.IndexOf('"') + 1;
-            Index end = formattedResponse.LastIndexOf('"');
-
-            FortuneText = formattedResponse[start..end];
-        }
-        else
-        {
-            FortuneText = formattedResponse;
-        }
+        FortuneText = formattedResponse;
 
         await SecureStorage.SetAsync(Constants.LAST_FORTUNE_USE_KEY, DateTime.Now.ToString());
         await SecureStorage.SetAsync(Constants.LAST_FORTUNE_KEY, FortuneText);
@@ -177,6 +168,16 @@ public class MainPageViewModel : INotifyPropertyChanged
 
         _logger.LogInformation("User received fortune");
 
+    }
+
+    private string BuildPrompt(UserProfile userProfile, string prompt)
+    {
+        var sb = new StringBuilder();
+        var luck = userProfile.Luck;
+        sb.AppendLine(prompt);
+        sb.AppendLine($"The today is {DateTime.Now.ToShortDateString()}. You know the stranger is named {userProfile.Name}, their birthday is {userProfile.Birthday}, and their fortune today is {luck}.");
+
+        return sb.ToString();
     }
 
     public async Task InitializeAsync()
