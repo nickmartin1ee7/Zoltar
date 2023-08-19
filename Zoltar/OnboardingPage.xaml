@@ -3,27 +3,41 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Zoltar.OnboardingPage">
-  <ScrollView>
-    <VerticalStackLayout
+    <ScrollView>
+        <VerticalStackLayout
         Spacing="10"
         VerticalOptions="Fill">
-      <Entry
+            <Entry
           x:Name="NameEntry"
           HorizontalOptions="Fill"
           HorizontalTextAlignment="Center"
           VerticalOptions="Center"
           Placeholder="Enter your Name"/>
 
-      <Entry
+            <Entry
           x:Name="BirthdayEntry"
           HorizontalOptions="Fill"
           HorizontalTextAlignment="Center"
           VerticalOptions="Center"
           Placeholder="Enter your Birthday"/>
 
-      <Button
+            <VerticalStackLayout>
+                <Label
+              HorizontalOptions="Fill"
+            HorizontalTextAlignment="Center"
+              VerticalOptions="Center"
+              Text="Use Astrology?"
+              />
+                <CheckBox
+              x:Name="UseAstrologyBtn"
+              HorizontalOptions="Fill"
+              VerticalOptions="Center"
+              />
+            </VerticalStackLayout>
+
+            <Button
           Text="Submit"
           Clicked="OnSubmitButtonClicked"/>
-    </VerticalStackLayout>
-  </ScrollView>
+        </VerticalStackLayout>
+    </ScrollView>
 </ContentPage>

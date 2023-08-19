@@ -174,8 +174,19 @@ public class MainPageViewModel : INotifyPropertyChanged
     {
         var sb = new StringBuilder();
         var luck = userProfile.Luck;
+
         sb.AppendLine(prompt);
-        sb.AppendLine($"The today is {DateTime.Now.ToShortDateString()}. You know the stranger is named {userProfile.Name}, their birthday is {userProfile.Birthday}, and their fortune today is {luck}.");
+
+        sb.Append($"The today is {DateTime.Now.ToShortDateString()}. " +
+                      $"You know the stranger is named {userProfile.Name}, " +
+                      $"their birthday is {userProfile.Birthday:d}, ");
+
+        if (userProfile.UseAstrology)
+        {
+            sb.Append($"their astrological sign is {userProfile.Sign}, ");
+        }
+
+        sb.AppendLine($"and their fortune today is {luck}.");
 
         return sb.ToString();
     }

@@ -4,6 +4,7 @@ public record UserProfile
 {
     public string Name { get; set; }
     public DateTime Birthday { get; set; }
+    public bool UseAstrology { get; set; }
     public string Luck => $"{Random.Shared.NextDouble() switch
     {
         >= .85 => "incredibly fortunate",

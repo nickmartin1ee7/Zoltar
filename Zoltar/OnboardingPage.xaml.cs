@@ -21,8 +21,10 @@ public partial class OnboardingPage : ContentPage
                 return;
 
             var userProfile = JsonSerializer.Deserialize<UserProfile>(userProfileJson)!;
+
             NameEntry.Text = userProfile.Name;
             BirthdayEntry.Text = userProfile.Birthday.ToShortDateString();
+            UseAstrologyBtn.IsChecked = userProfile.UseAstrology;
         }
         catch (Exception)
         {
@@ -51,7 +53,8 @@ public partial class OnboardingPage : ContentPage
         var userProfile = new UserProfile
         {
             Name = name,
-            Birthday = birthday
+            Birthday = birthday,
+            UseAstrology = UseAstrologyBtn.IsChecked
         };
 
         await SecureStorage.SetAsync(Constants.USER_PROFILE_KEY, JsonSerializer.Serialize(userProfile));
