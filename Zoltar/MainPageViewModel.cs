@@ -1,15 +1,14 @@
 ﻿using System.ComponentModel;
+using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Windows.Input;
 
 using Microsoft.AppCenter.Distribute;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.FeatureManagement;
-
-using Rystem.OpenAi;
-using Rystem.OpenAi.Completion;
 
 namespace Zoltar;
 
@@ -18,9 +17,14 @@ public class MainPageViewModel : INotifyPropertyChanged
     private const int MAX_SPECIAL_INTERACTIONS = 5;
 
     private readonly ILogger<MainPageViewModel> _logger;
-    private readonly IOpenAi _ai;
-    private readonly ZoltarSettings _settings;
+    private readonly HttpClient _client;
+    private readonly ConfigurationProvider _configProvider;
     private readonly IFeatureManager _featureManager;
+
+    private ZoltarSettings _settings => _configProvider
+        .Configure()
+        .GetSection(nameof(ZoltarSettings))
+        .Get<ZoltarSettings>();
 
     private string _fortuneText;
     private string _waitTimeText;
@@ -31,15 +35,15 @@ public class MainPageViewModel : INotifyPropertyChanged
     private int _specialInteractions;
     private UserProfile _userProfile;
 
-    public MainPageViewModel(IOpenAiFactory openAiFactory,
+    public MainPageViewModel(HttpClient httpClient,
         ILogger<MainPageViewModel> logger,
-        ZoltarSettings settings,
+        ConfigurationProvider configProvider,
         IFeatureManager featureManager)
     {
-        _settings = settings;
+        _configProvider = configProvider;
         _featureManager = featureManager;
         _logger = logger;
-        _ai = openAiFactory.Create();
+        _client = httpClient;
 
         FortuneCommand = new Command(
             execute: async () => await GetFortuneAsync(),
@@ -125,21 +129,22 @@ public class MainPageViewModel : INotifyPropertyChanged
 
         _logger.LogInformation("User requested fortune");
 
-        CompletionResult result = null;
+        string result = null;
 
         try
         {
-            result = await _ai.Completion.Request(BuildPrompt(_userProfile, _settings.OpenAi.Prompt))
-                .WithModel(TextModelType.DavinciText3)
-                .SetMaxTokens(_settings.OpenAi.MaxTokens)
-                .ExecuteAsync();
+            var requestContent = JsonContent.Create(BuildPrompt(_userProfile));
+            requestContent.Headers.Add("X-API-KEY", _settings.Api.ApiKey);
+
+            var response = await _client.PostAsync($"{_settings.Api.Url}/generate", requestContent);
+            result = (await response.Content.ReadFromJsonAsync<FortuneApiResponse>())?.Fortune;
         }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Failed to communicate with OpenAi");
         }
 
-        if (result?.Completions is null)
+        if (result is null)
         {
             _logger.LogWarning("User saw no fortune");
 
@@ -150,8 +155,8 @@ public class MainPageViewModel : INotifyPropertyChanged
         }
 
 
-        var formattedResponse = string.Join(Environment.NewLine,
-                result.Completions.Select(c => c.Text))
+        var formattedResponse = result
+            .Replace("\"", string.Empty)
             .TrimStart()
             .TrimEnd();
 
@@ -167,15 +172,12 @@ public class MainPageViewModel : INotifyPropertyChanged
         IsLoading = false;
 
         _logger.LogInformation("User received fortune");
-
     }
 
-    private string BuildPrompt(UserProfile userProfile, string prompt)
+    private string BuildPrompt(UserProfile userProfile)
     {
         var sb = new StringBuilder();
         var luck = userProfile.Luck;
-
-        sb.AppendLine(prompt);
 
         sb.Append($"The today is {DateTime.Now.ToShortDateString()}. " +
                       $"You know the stranger is named {userProfile.Name}, " +

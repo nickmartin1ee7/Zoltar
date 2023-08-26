@@ -1,6 +1,4 @@
-﻿using System.Reflection;
-
-using Microsoft.AppCenter.Distribute;
+﻿using Microsoft.AppCenter.Distribute;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.FeatureManagement;
@@ -23,57 +21,32 @@ public static class MauiProgram
 #if DEBUG
         builder.Logging.AddDebug();
 #endif
+        var configProvider = new ConfigurationProvider();
+        configProvider.Configure(builder.Configuration);
 
-        SetupConfiguration(builder);
-
-        var zoltarSettings = builder.Configuration
+        var zoltarSettingsSnapshot = builder.Configuration
             .GetSection(nameof(ZoltarSettings))
-            .Get<ZoltarSettings>() ?? throw new ArgumentNullException(nameof(ZoltarSettings));
+            .Get<ZoltarSettings>();
 
         Distribute.SetEnabledAsync(true).GetAwaiter().GetResult();
 
         builder.Services
-            .AddOpenAi(settings =>
-            {
-                settings.ApiKey = zoltarSettings.OpenAi.Key;
-            })
-            .AddSingleton<ZoltarSettings>(zoltarSettings)
+            .AddScoped<HttpClient>()
+            .AddSingleton<ConfigurationProvider>(configProvider)
             .AddTransient<MainPageViewModel>()
             .AddTransient<MainPage>()
             .AddTransient<AppShell>()
             .AddLogging(loggingBuilder =>
             {
+                if (zoltarSettingsSnapshot?.AppCenter?.Secret is null)
+                    return;
+
                 loggingBuilder.AddAppCenter(appCenterLoggerOptions =>
-                    appCenterLoggerOptions.AppCenterAndroidSecret = zoltarSettings.AppCenter.Secret);
+                    appCenterLoggerOptions.AppCenterAndroidSecret = zoltarSettingsSnapshot.AppCenter.Secret);
             })
             .AddFeatureManagement()
             ;
 
         return builder.Build();
-    }
-
-    private static void SetupConfiguration(MauiAppBuilder builder)
-    {
-        var assembly = Assembly.GetExecutingAssembly();
-
-        var configFileName = $"{assembly.GetName().Name}.Resources.appsettings.json";
-
-        using var configStream = assembly
-                                     .GetManifestResourceStream(configFileName)
-                                 ?? throw new ArgumentException($"Configuration file ({configFileName}) not found",
-                                     nameof(configFileName));
-
-        var tempConfig = new ConfigurationBuilder()
-            .AddJsonStream(configStream)
-            .Build();
-
-        var aacConnStr = tempConfig.GetConnectionString("aac");
-
-        builder.Configuration
-            .AddAzureAppConfiguration(options =>
-            {
-                options.Connect(aacConnStr)
-                    .UseFeatureFlags();
-            });
     }
 }
