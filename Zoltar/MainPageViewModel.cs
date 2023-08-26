@@ -57,6 +57,7 @@ public class MainPageViewModel : INotifyPropertyChanged
 
     private async Task OnboardUserAsync()
     {
+        _logger.LogInformation("Onboarding user");
         await Shell.Current.GoToAsync($"///{nameof(OnboardingPage)}");
     }
 
@@ -130,18 +131,19 @@ public class MainPageViewModel : INotifyPropertyChanged
         _logger.LogInformation("User requested fortune");
 
         string result = null;
+        HttpResponseMessage response = null;
 
         try
         {
             var requestContent = JsonContent.Create(BuildPrompt(_userProfile));
             requestContent.Headers.Add("X-API-KEY", _settings.Api.ApiKey);
 
-            var response = await _client.PostAsync($"{_settings.Api.Url}/generate", requestContent);
+            response = await _client.PostAsync($"{_settings.Api.Url}/generate", requestContent);
             result = (await response.Content.ReadFromJsonAsync<FortuneApiResponse>())?.Fortune;
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "Failed to communicate with OpenAi");
+            _logger.LogError(exception, "Failed to communicate with OpenAi. Response code: {responseCode}", response?.StatusCode);
         }
 
         if (result is null)

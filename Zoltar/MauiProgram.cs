@@ -3,12 +3,23 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.FeatureManagement;
 
+using Serilog;
+
 namespace Zoltar;
 
 public static class MauiProgram
 {
     public static MauiApp CreateMauiApp(string userId = null)
     {
+        AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
+        {
+            Log.CloseAndFlush();
+        };
+
+        Distribute.UpdateTrack = UpdateTrack.Public;
+        Distribute.SetEnabledAsync(true).GetAwaiter().GetResult();
+        Distribute.CheckForUpdate();
+
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
@@ -18,17 +29,12 @@ public static class MauiProgram
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
 
-#if DEBUG
-        builder.Logging.AddDebug();
-#endif
         var configProvider = new ConfigurationProvider();
-        configProvider.Configure(builder.Configuration);
 
-        var zoltarSettingsSnapshot = builder.Configuration
+        var zoltarSettingsSnapshot = configProvider
+            .Configure(builder.Configuration)
             .GetSection(nameof(ZoltarSettings))
             .Get<ZoltarSettings>();
-
-        Distribute.SetEnabledAsync(true).GetAwaiter().GetResult();
 
         builder.Services
             .AddScoped<HttpClient>()
@@ -38,14 +44,24 @@ public static class MauiProgram
             .AddTransient<AppShell>()
             .AddLogging(loggingBuilder =>
             {
+                loggingBuilder.AddSerilog(Log.Logger = new LoggerConfiguration()
+                    .ReadFrom.Configuration(configProvider.Configure(builder.Configuration))
+                    .WriteTo.Console()
+                    .WriteTo.Seq(
+                        serverUrl: zoltarSettingsSnapshot?.Telemetry?.Url ?? string.Empty,
+                        apiKey: zoltarSettingsSnapshot?.Telemetry?.Key ?? string.Empty)
+                    .Enrich.WithProperty(nameof(userId), userId)
+                    .Enrich.WithProperty("version", AppInfo.Current.VersionString)
+                    .CreateLogger());
+
                 if (zoltarSettingsSnapshot?.AppCenter?.Secret is null)
                     return;
 
-                loggingBuilder.AddAppCenter(appCenterLoggerOptions =>
-                    appCenterLoggerOptions.AppCenterAndroidSecret = zoltarSettingsSnapshot.AppCenter.Secret);
+                loggingBuilder
+                    .AddAppCenter(appCenterLoggerOptions =>
+                        appCenterLoggerOptions.AppCenterAndroidSecret = zoltarSettingsSnapshot.AppCenter.Secret);
             })
-            .AddFeatureManagement()
-            ;
+            .AddFeatureManagement();
 
         return builder.Build();
     }
