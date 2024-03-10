@@ -20,6 +20,7 @@ public class MainPageViewModel : INotifyPropertyChanged
     private readonly HttpClient _client;
     private readonly ConfigurationProvider _configProvider;
     private readonly IFeatureManager _featureManager;
+    private readonly IAlarmScheduler _alarmScheduler;
 
     private ZoltarSettings _settings => _configProvider
         .Configure()
@@ -39,10 +40,12 @@ public class MainPageViewModel : INotifyPropertyChanged
     public MainPageViewModel(HttpClient httpClient,
         ILogger<MainPageViewModel> logger,
         ConfigurationProvider configProvider,
-        IFeatureManager featureManager)
+        IFeatureManager featureManager,
+        IAlarmScheduler alarmScheduler)
     {
         _configProvider = configProvider;
         _featureManager = featureManager;
+        _alarmScheduler = alarmScheduler;
         _logger = logger;
         _client = httpClient;
 
@@ -107,7 +110,12 @@ public class MainPageViewModel : INotifyPropertyChanged
                 return true;
 
             var lastFortuneTime = DateTime.Parse(lastFortune);
+
+#if DEBUG
+            var next = lastFortuneTime.AddSeconds(10);
+#else
             var next = lastFortuneTime.AddDays(1).Date;
+#endif
 
             if (DateTime.Now > next)
                 return true;
@@ -122,6 +130,7 @@ public class MainPageViewModel : INotifyPropertyChanged
                     await Task.Delay(next - DateTime.Now);
                     FortuneAllowed = await CanReadFortuneAsync();
                 });
+                ScheduleNotification(next - DateTime.Now);
             }
 
             if (skipWait)
@@ -134,6 +143,11 @@ public class MainPageViewModel : INotifyPropertyChanged
             _logger.LogError(exception, "Failed to read last fortune usage from storage");
             return true;
         }
+    }
+
+    private void ScheduleNotification(TimeSpan timeSpan)
+    {
+        _alarmScheduler.ScheduleNotification((long)timeSpan.TotalMilliseconds);
     }
 
     private async Task GetFortuneAsync()

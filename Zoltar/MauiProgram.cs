@@ -39,6 +39,9 @@ public static class MauiProgram
         builder.Services
             .AddScoped<HttpClient>()
             .AddSingleton<ConfigurationProvider>(configProvider)
+#if ANDROID21_0_OR_GREATER
+            .AddTransient<IAlarmScheduler, AlarmScheduler>()
+#endif
             .AddTransient<MainPageViewModel>()
             .AddTransient<MainPage>()
             .AddTransient<AppShell>()
