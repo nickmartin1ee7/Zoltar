@@ -112,7 +112,7 @@ public class MainPageViewModel : INotifyPropertyChanged
             var lastFortuneTime = DateTime.Parse(lastFortune);
 
 #if DEBUG
-            var next = lastFortuneTime.AddSeconds(10);
+            var next = lastFortuneTime.AddSeconds(30);
 #else
             var next = lastFortuneTime.AddDays(1).Date;
 #endif
@@ -130,7 +130,8 @@ public class MainPageViewModel : INotifyPropertyChanged
                     await Task.Delay(next - DateTime.Now);
                     FortuneAllowed = await CanReadFortuneAsync();
                 });
-                ScheduleNotification(next - DateTime.Now);
+
+                await ScheduleNotificationAsync(next);
             }
 
             if (skipWait)
@@ -145,10 +146,59 @@ public class MainPageViewModel : INotifyPropertyChanged
         }
     }
 
-    private void ScheduleNotification(TimeSpan timeSpan)
+    private async Task ScheduleNotificationAsync(DateTime triggerTime)
     {
-        _alarmScheduler.ScheduleNotification((long)timeSpan.TotalMilliseconds);
+#if ANDROID21_0_OR_GREATER
+        var shouldPrompt = true;
+
+        try
+        {
+            if (!bool.TryParse(await SecureStorage.GetAsync("prompt_notifications"), out shouldPrompt))
+            {
+                await SetPromptNotificationsAsync(shouldPrompt = true); // Default to prompt user
+            }
+        }
+        catch (Exception e)
+        {
+            // No logger available here
+        }
+
+        if (shouldPrompt && !AreDeviceNotificationsEnabled())
+        {
+            var userPermissionResult = await Application.Current!.MainPage!.DisplayAlert(
+                "Enable Notifications",
+                "Your notifications to receive New Fortune updates are currently turned off. To receive notifications, you need to enable this permission.",
+                "Go to Settings",
+                "Cancel");
+
+            if (userPermissionResult)
+            {
+                AppInfo.ShowSettingsUI();
+            }
+
+            try
+            {
+                await SetPromptNotificationsAsync(userPermissionResult); // Don't prompt again
+            }
+            catch (Exception e)
+            {
+                // No logger available here
+            }
+        }
+
+        _alarmScheduler.ScheduleNotification(triggerTime);
+#endif
     }
+
+    private static async Task SetPromptNotificationsAsync(bool shouldPrompt)
+    {
+        await SecureStorage.SetAsync("prompt_notifications", shouldPrompt.ToString());
+    }
+
+    private static bool AreDeviceNotificationsEnabled() =>
+        AndroidX.Core.App.NotificationManagerCompat.From(Platform.CurrentActivity!).AreNotificationsEnabled();
+
+
 
     private async Task GetFortuneAsync()
     {

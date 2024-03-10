@@ -99,6 +99,9 @@
                         <Setter
                             Property="Text"
                             Value="Tell me my fortune" />
+                        <Setter
+                            Property="IsEnabled"
+                            Value="True" />
                     </DataTrigger>
                     <DataTrigger
                         TargetType="Button"
@@ -107,6 +110,9 @@
                         <Setter
                             Property="Text"
                             Value="Fate has been decided" />
+                        <Setter
+                            Property="IsEnabled"
+                            Value="False" />
                     </DataTrigger>
                 </Button.Triggers>
             </Button>
