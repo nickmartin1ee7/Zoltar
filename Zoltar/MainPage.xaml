@@ -20,7 +20,7 @@
                 FontSize="Large"
                 Text="⚙️"
                 Command="{Binding OnboardCommand}" />
-            
+
             <WebView
                 Grid.Column="0"
                 Grid.Row="1"
@@ -90,7 +90,26 @@
                 Command="{Binding FortuneCommand}"
                 Margin="0,0,0,25"
                 HorizontalOptions="Center"
-                Clicked="SpecialInteraction_OnClicked" />
+                Clicked="SpecialInteraction_OnClicked">
+                <Button.Triggers>
+                    <DataTrigger
+                        TargetType="Button"
+                        Binding="{Binding FortuneAllowed}"
+                        Value="True">
+                        <Setter
+                            Property="Text"
+                            Value="Tell me my fortune" />
+                    </DataTrigger>
+                    <DataTrigger
+                        TargetType="Button"
+                        Binding="{Binding FortuneAllowed}"
+                        Value="False">
+                        <Setter
+                            Property="Text"
+                            Value="Fate has been decided" />
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
         </Grid>
     </ScrollView>
 </ContentPage>
