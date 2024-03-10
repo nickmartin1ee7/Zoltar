@@ -45,13 +45,19 @@ public static class MauiProgram
             .AddLogging(loggingBuilder =>
             {
                 loggingBuilder.AddSerilog(Log.Logger = new LoggerConfiguration()
-                    .ReadFrom.Configuration(configProvider.Configure(builder.Configuration))
+                    .MinimumLevel.Verbose()
+                    .MinimumLevel.Override("System", Serilog.Events.LogEventLevel.Warning)
+                    .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
+                    .Enrich.FromLogContext()
+                    .Enrich.WithMachineName()
+                    .Enrich.WithThreadId()
+                    .Enrich.WithThreadName()
+                    .Enrich.WithProperty(nameof(userId), userId)
+                    .Enrich.WithProperty("version", AppInfo.Current.VersionString)
                     .WriteTo.Console()
                     .WriteTo.Seq(
                         serverUrl: zoltarSettingsSnapshot?.Telemetry?.Url ?? string.Empty,
                         apiKey: zoltarSettingsSnapshot?.Telemetry?.Key ?? string.Empty)
-                    .Enrich.WithProperty(nameof(userId), userId)
-                    .Enrich.WithProperty("version", AppInfo.Current.VersionString)
                     .CreateLogger());
 
                 if (zoltarSettingsSnapshot?.AppCenter?.Secret is null)
