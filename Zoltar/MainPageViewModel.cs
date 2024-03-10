@@ -26,6 +26,7 @@ public class MainPageViewModel : INotifyPropertyChanged
         .GetSection(nameof(ZoltarSettings))
         .Get<ZoltarSettings>();
 
+    private string _fortuneHeader = "Zoltar, The Fortune Teller";
     private string _fortuneText;
     private string _waitTimeText;
     private bool _fortuneAllowed;
@@ -65,12 +66,27 @@ public class MainPageViewModel : INotifyPropertyChanged
     {
         try
         {
-            FortuneText = await SecureStorage.GetAsync(Constants.LAST_FORTUNE_KEY);
+            var lastFortune = JsonSerializer.Deserialize<FortuneApiResponse>(await SecureStorage.GetAsync(Constants.LAST_FORTUNE_KEY));
+            SetValuesFromApiResponse(lastFortune);
             _logger.LogInformation("Loaded last fortune from storage successfully");
         }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Failed to load last fortune from storage");
+        }
+    }
+
+    private void SetValuesFromApiResponse(FortuneApiResponse fortuneResponse)
+    {
+        if (!string.IsNullOrWhiteSpace(fortuneResponse.Fortune))
+        {
+            var formattedResponse = FormatFortuneText(fortuneResponse.Fortune);
+            FortuneText = formattedResponse;
+        }
+
+        if (!string.IsNullOrWhiteSpace(fortuneResponse.LuckText))
+        {
+            FortuneHeader = fortuneResponse.LuckText;
         }
     }
 
@@ -122,77 +138,87 @@ public class MainPageViewModel : INotifyPropertyChanged
 
     private async Task GetFortuneAsync()
     {
-        if (!FortuneAllowed)
-            return;
-
-        FortuneAllowed = false;
-        IsLoading = true;
-
-        _logger.LogInformation("User requested fortune");
-
-        string result = null;
-        HttpResponseMessage response = null;
-
         try
         {
-            var requestContent = JsonContent.Create(BuildPrompt(_userProfile));
-            requestContent.Headers.Add("X-API-KEY", _settings.Api.ApiKey);
+            if (!FortuneAllowed)
+                return;
 
-            response = await _client.PostAsync($"{_settings.Api.Url}/generate", requestContent);
-            result = (await response.Content.ReadFromJsonAsync<FortuneApiResponse>())?.Fortune;
+            FortuneAllowed = false;
+            IsLoading = true;
+
+            _logger.LogInformation("User requested fortune");
+
+            FortuneApiResponse result = null;
+            HttpResponseMessage response = null;
+
+            try
+            {
+                var (Context, Luck) = BuildPrompt(_userProfile);
+                var requestContent = JsonContent.Create(Context);
+                requestContent.Headers.Add("X-API-KEY", _settings.Api.ApiKey);
+
+                response = await _client.PostAsync($"{_settings.Api.Url}/generate", requestContent);
+                result = await response.Content.ReadFromJsonAsync<FortuneApiResponse>();
+                result.LuckText ??= Luck;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Failed to communicate API. Response code: {responseCode}", response?.StatusCode);
+            }
+
+            if (result?.Fortune is null)
+            {
+                _logger.LogWarning("User saw no fortune");
+
+                FortuneHeader = "Zoltar, The Fortune Teller";
+                FortuneText = "Zoltar remains silent.";
+                FortuneAllowed = true;
+                return;
+            }
+
+            SetValuesFromApiResponse(result);
+
+            await SecureStorage.SetAsync(Constants.LAST_FORTUNE_USE_KEY, DateTime.Now.ToString());
+            await SecureStorage.SetAsync(Constants.LAST_FORTUNE_KEY, JsonSerializer.Serialize(result));
+
+            _ = Task.Run(async () =>
+                await TextToSpeech.SpeakAsync(FortuneText));
+
+            FortuneAllowed = await CanReadFortuneAsync(autoUpdateWhenAllowed: true);
+
+            _logger.LogInformation("User received fortune");
         }
-        catch (Exception exception)
+        finally
         {
-            _logger.LogError(exception, "Failed to communicate with OpenAi. Response code: {responseCode}", response?.StatusCode);
-        }
-
-        if (result is null)
-        {
-            _logger.LogWarning("User saw no fortune");
-
-            FortuneText = "Zoltar remains silent.";
-            FortuneAllowed = true;
             IsLoading = false;
-            return;
         }
+    }
 
-
-        var formattedResponse = result
+    private static string FormatFortuneText(string fortuneText)
+    {
+        return fortuneText
             .Replace("\"", string.Empty)
             .TrimStart()
             .TrimEnd();
-
-        FortuneText = formattedResponse;
-
-        await SecureStorage.SetAsync(Constants.LAST_FORTUNE_USE_KEY, DateTime.Now.ToString());
-        await SecureStorage.SetAsync(Constants.LAST_FORTUNE_KEY, FortuneText);
-
-        _ = Task.Run(async () =>
-            await TextToSpeech.SpeakAsync(FortuneText));
-
-        FortuneAllowed = await CanReadFortuneAsync(autoUpdateWhenAllowed: true);
-        IsLoading = false;
-
-        _logger.LogInformation("User received fortune");
     }
 
-    private string BuildPrompt(UserProfile userProfile)
+    private static (string Context, string Luck) BuildPrompt(UserProfile userProfile)
     {
-        var sb = new StringBuilder();
+        var contextSb = new StringBuilder();
         var luck = userProfile.Luck;
 
-        sb.Append($"The today is {DateTime.Now.ToShortDateString()}. " +
+        contextSb.Append($"The today is {DateTime.Now.ToShortDateString()}. " +
                       $"You know the stranger is named {userProfile.Name}, " +
                       $"their birthday is {userProfile.Birthday:d}, ");
 
         if (userProfile.UseAstrology)
         {
-            sb.Append($"their astrological sign is {userProfile.Sign}, ");
+            contextSb.Append($"their astrological sign is {userProfile.Sign}, ");
         }
 
-        sb.AppendLine($"and their fortune today is {luck}.");
+        contextSb.AppendLine($"and their fortune today is {luck}.");
 
-        return sb.ToString();
+        return (contextSb.ToString(), luck);
     }
 
     public async Task InitializeAsync()
@@ -245,6 +271,17 @@ public class MainPageViewModel : INotifyPropertyChanged
         _specialInteractions = 0;
         FortuneAllowed = await CanReadFortuneAsync(skipWait: true);
         WaitTimeText = "Zoltar grants you another fortune.";
+    }
+
+    public string FortuneHeader
+    {
+        get => _fortuneHeader;
+        set
+        {
+            if (value == _fortuneHeader) return;
+            _fortuneHeader = value;
+            OnPropertyChanged();
+        }
     }
 
     public string FortuneText

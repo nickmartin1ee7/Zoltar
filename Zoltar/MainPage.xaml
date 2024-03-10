@@ -3,7 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:zoltar="clr-namespace:Zoltar"
              x:Class="Zoltar.MainPage"
-             x:DataType="zoltar:MainPageViewModel">
+             x:DataType="zoltar:MainPageViewModel"
+             Title="Zoltar">
     <ScrollView>
         <Grid
             Padding="30,0,30,5"
@@ -18,8 +19,8 @@
                 BackgroundColor="Transparent"
                 FontSize="Large"
                 Text="⚙️"
-                Command="{Binding OnboardCommand}"
-                />
+                Command="{Binding OnboardCommand}" />
+            
             <WebView
                 Grid.Column="0"
                 Grid.Row="1"
@@ -46,17 +47,18 @@
             <Label
                 Grid.Column="0"
                 Grid.Row="2"
-                Text="Zoltar, The Fortune Teller"
+                Text="{Binding FortuneHeader, StringFormat='Your luck today is {0}'}"
                 FontSize="Large"
+                FontAttributes="Bold"
                 Margin="0,0,0,25"
-                HorizontalOptions="Center" />
+                HorizontalOptions="Center"
+                HorizontalTextAlignment="Center" />
 
             <ActivityIndicator
                 Grid.Column="0"
                 Grid.Row="3"
                 HorizontalOptions="Center"
-                IsRunning="{Binding IsLoading}"
-                />
+                IsRunning="{Binding IsLoading}" />
 
             <Editor
                 Grid.Column="0"
@@ -68,7 +70,7 @@
                 IsSpellCheckEnabled="False"
                 Placeholder="Zoltar awaits your command."
                 Margin="0,0,0,25"
-                HorizontalTextAlignment="Center"/>
+                HorizontalTextAlignment="Center" />
 
             <Label
                 Grid.Column="0"
@@ -88,8 +90,7 @@
                 Command="{Binding FortuneCommand}"
                 Margin="0,0,0,25"
                 HorizontalOptions="Center"
-                Clicked="SpecialInteraction_OnClicked"
-                />
+                Clicked="SpecialInteraction_OnClicked" />
         </Grid>
     </ScrollView>
 </ContentPage>
