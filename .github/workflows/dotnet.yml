@@ -61,7 +61,7 @@ jobs:
           # Write the modified content back to the AndroidManifest.xml file
           $manifestContent | Set-Content -Path $manifestPath
       - name: Publish
-        run: dotnet publish ./Zoltar/Zoltar.csproj -f net7.0-android -c Release -o release
+        run: dotnet publish ./Zoltar/Zoltar.csproj -f net8.0-android -c Release -o release
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v3.0.0
         with:
