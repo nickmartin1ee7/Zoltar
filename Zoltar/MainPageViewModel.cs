@@ -112,9 +112,9 @@ public class MainPageViewModel : INotifyPropertyChanged
             var lastFortuneTime = DateTimeOffset.Parse(lastFortune);
 
 #if DEBUG
-            var next = lastFortuneTime.AddSeconds(30);
+            var next = new DateTimeOffset(lastFortuneTime.AddSeconds(30).DateTime, lastFortuneTime.Offset);
 #else
-            var next = lastFortuneTime.AddDays(1).Date;
+            var next = new DateTimeOffset(lastFortuneTime.AddDays(1).Date, lastFortuneTime.Offset);
 #endif
 
             if (DateTimeOffset.Now > next)
