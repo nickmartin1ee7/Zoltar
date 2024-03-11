@@ -2,5 +2,5 @@
 
 public interface IAlarmScheduler
 {
-    void ScheduleNotification(DateTime notificationTime);
+    void ScheduleNotification(long triggerInMilliseconds);
 }

@@ -7,7 +7,7 @@ namespace Zoltar;
 
 public class AlarmScheduler : IAlarmScheduler
 {
-    public void ScheduleNotification(DateTime notificationTime)
+    public void ScheduleNotification(long triggerInMilliseconds)
     {
 #if ANDROID21_0_OR_GREATER
 #pragma warning disable CA1416 // Validate platform compatibility
@@ -18,8 +18,7 @@ public class AlarmScheduler : IAlarmScheduler
         var pendingIntent = PendingIntent.GetBroadcast(context, 0, alarmIntent, PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable);
 
         var alarmManager = (AlarmManager)context.GetSystemService(Context.AlarmService);
-        var ticks = notificationTime.Ticks / TimeSpan.TicksPerMillisecond;
-        alarmManager.SetExact(AlarmType.Rtc, ticks, pendingIntent);
+        alarmManager.SetExactAndAllowWhileIdle(AlarmType.RtcWakeup, triggerInMilliseconds, pendingIntent);
 #pragma warning restore CA1416 // Validate platform compatibility
 #endif
     }

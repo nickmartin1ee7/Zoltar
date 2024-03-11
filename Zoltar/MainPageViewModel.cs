@@ -109,7 +109,7 @@ public class MainPageViewModel : INotifyPropertyChanged
             if (string.IsNullOrEmpty(lastFortune))
                 return true;
 
-            var lastFortuneTime = DateTime.Parse(lastFortune);
+            var lastFortuneTime = DateTimeOffset.Parse(lastFortune);
 
 #if DEBUG
             var next = lastFortuneTime.AddSeconds(30);
@@ -117,7 +117,7 @@ public class MainPageViewModel : INotifyPropertyChanged
             var next = lastFortuneTime.AddDays(1).Date;
 #endif
 
-            if (DateTime.Now > next)
+            if (DateTimeOffset.Now > next)
                 return true;
 
             WaitTimeText = $"Your fate changes at {next}";
@@ -125,13 +125,17 @@ public class MainPageViewModel : INotifyPropertyChanged
 
             if (autoUpdateWhenAllowed)
             {
+                await CheckForNotificationsPermissionAsync();
+
                 _ = Task.Run(async () =>
                 {
-                    await Task.Delay(next - DateTime.Now);
+                    var untilNextRun = next.Subtract(DateTimeOffset.Now);
+                    await Task.Delay(untilNextRun);
                     FortuneAllowed = await CanReadFortuneAsync();
                 });
 
-                await ScheduleNotificationAsync(next);
+                var unixTicksInMs = next.ToUnixTimeMilliseconds();
+                _alarmScheduler.ScheduleNotification(unixTicksInMs);
             }
 
             if (skipWait)
@@ -146,7 +150,7 @@ public class MainPageViewModel : INotifyPropertyChanged
         }
     }
 
-    private async Task ScheduleNotificationAsync(DateTime triggerTime)
+    private async Task CheckForNotificationsPermissionAsync()
     {
 #if ANDROID21_0_OR_GREATER
         var shouldPrompt = true;
@@ -160,7 +164,7 @@ public class MainPageViewModel : INotifyPropertyChanged
         }
         catch (Exception e)
         {
-            // No logger available here
+            _logger.LogError(e, "Unable to read if user had been prompted for notifications before");
         }
 
         if (shouldPrompt && !AreDeviceNotificationsEnabled())
@@ -182,11 +186,9 @@ public class MainPageViewModel : INotifyPropertyChanged
             }
             catch (Exception e)
             {
-                // No logger available here
+                _logger.LogError(e, "Unable to set the user's preference for notifications");
             }
         }
-
-        _alarmScheduler.ScheduleNotification(triggerTime);
 #endif
     }
 
@@ -242,7 +244,7 @@ public class MainPageViewModel : INotifyPropertyChanged
 
             SetValuesFromApiResponse(result);
 
-            await SecureStorage.SetAsync(Constants.LAST_FORTUNE_USE_KEY, DateTime.Now.ToString());
+            await SecureStorage.SetAsync(Constants.LAST_FORTUNE_USE_KEY, DateTimeOffset.Now.ToString());
             await SecureStorage.SetAsync(Constants.LAST_FORTUNE_KEY, JsonSerializer.Serialize(result));
 
             _ = Task.Run(async () =>

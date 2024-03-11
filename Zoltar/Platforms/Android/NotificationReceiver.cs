@@ -19,7 +19,7 @@ public class NotificationReceiver : BroadcastReceiver
             "Zoltar has a new fortune for you! 🔮");
     }
 
-    private void SendNotification(Context context, string title, string message)
+    public void SendNotification(Context context, string title, string message)
     {
 #if ANDROID21_0_OR_GREATER
 #pragma warning disable CA1416 // Validate platform compatibility
