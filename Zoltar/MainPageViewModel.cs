@@ -120,7 +120,7 @@ public class MainPageViewModel : INotifyPropertyChanged
             if (DateTimeOffset.Now > next)
                 return true;
 
-            WaitTimeText = $"Your fate changes at {next}";
+            WaitTimeText = $"Your fate changes at {next:MMM d h:mm:ss tt}";
             WaitTimeVisible = true;
 
             if (autoUpdateWhenAllowed)
