@@ -70,5 +70,6 @@ public partial class OnboardingPage : ContentPage
     private void BirthdayEntry_TextChanged(object sender, TextChangedEventArgs e)
     {
         UseAstrologyBtn.IsEnabled = e.NewTextValue.Length > 0;
+        UseAstrologyBtn.IsChecked = UseAstrologyBtn.IsEnabled && UseAstrologyBtn.IsChecked;
     }
 }
