@@ -15,6 +15,7 @@ namespace Zoltar;
 public class MainPageViewModel : INotifyPropertyChanged
 {
     private const int MAX_SPECIAL_INTERACTIONS = 5;
+    private const string DEFAULT_FORTUNE_HEADER = "Zoltar, The Fortune Teller";
 
     private readonly ILogger<MainPageViewModel> _logger;
     private readonly HttpClient _client;
@@ -27,7 +28,7 @@ public class MainPageViewModel : INotifyPropertyChanged
         .GetSection(nameof(ZoltarSettings))
         .Get<ZoltarSettings>();
 
-    private string _fortuneHeader = "Zoltar, The Fortune Teller";
+    private string _fortuneHeader = DEFAULT_FORTUNE_HEADER;
     private string _fortuneText;
     private string _waitTimeText;
     private bool _fortuneAllowed;
@@ -89,7 +90,7 @@ public class MainPageViewModel : INotifyPropertyChanged
 
         if (!string.IsNullOrWhiteSpace(fortuneResponse.LuckText))
         {
-            FortuneHeader = fortuneResponse.LuckText;
+            FortuneHeader = $"Your luck today is {fortuneResponse.LuckText}";
         }
     }
 
@@ -125,8 +126,6 @@ public class MainPageViewModel : INotifyPropertyChanged
 
             if (autoUpdateWhenAllowed)
             {
-                await CheckForNotificationsPermissionAsync();
-
                 _ = Task.Run(async () =>
                 {
                     var untilNextRun = next.Subtract(DateTimeOffset.Now);
@@ -171,7 +170,7 @@ public class MainPageViewModel : INotifyPropertyChanged
         {
             var userPermissionResult = await Application.Current!.MainPage!.DisplayAlert(
                 "Enable Notifications",
-                "Your notifications to receive New Fortune updates are currently turned off. To receive notifications, you need to enable this permission.",
+                "To be notified when a New Fortune is ready, please enable the notification permission for this app.",
                 "Go to Settings",
                 "Cancel");
 
@@ -199,8 +198,6 @@ public class MainPageViewModel : INotifyPropertyChanged
 
     private static bool AreDeviceNotificationsEnabled() =>
         AndroidX.Core.App.NotificationManagerCompat.From(Platform.CurrentActivity!).AreNotificationsEnabled();
-
-
 
     private async Task GetFortuneAsync()
     {
@@ -236,7 +233,7 @@ public class MainPageViewModel : INotifyPropertyChanged
             {
                 _logger.LogWarning("User saw no fortune");
 
-                FortuneHeader = "Zoltar, The Fortune Teller";
+                FortuneHeader = DEFAULT_FORTUNE_HEADER;
                 FortuneText = "Zoltar remains silent.";
                 FortuneAllowed = true;
                 return;
@@ -247,8 +244,11 @@ public class MainPageViewModel : INotifyPropertyChanged
             await SecureStorage.SetAsync(Constants.LAST_FORTUNE_USE_KEY, DateTimeOffset.Now.ToString());
             await SecureStorage.SetAsync(Constants.LAST_FORTUNE_KEY, JsonSerializer.Serialize(result));
 
-            _ = Task.Run(async () =>
-                await TextToSpeech.SpeakAsync(FortuneText));
+            if (_userProfile.AnnounceFortune)
+            {
+                _ = Task.Run(async () =>
+                    await TextToSpeech.SpeakAsync(FortuneText));
+            }
 
             FortuneAllowed = await CanReadFortuneAsync(autoUpdateWhenAllowed: true);
 
@@ -279,7 +279,7 @@ public class MainPageViewModel : INotifyPropertyChanged
 
         if (userProfile.UseAstrology)
         {
-            contextSb.Append($"their astrological sign is {userProfile.Sign}, ");
+            contextSb.Append($"their astrological sign is {userProfile.Sign} (mention their sign), ");
         }
 
         contextSb.AppendLine($"and their fortune today is {luck}.");
@@ -289,7 +289,9 @@ public class MainPageViewModel : INotifyPropertyChanged
 
     public async Task InitializeAsync()
     {
+        await CheckForNotificationsPermissionAsync();
         await TryOnboardNewUserAsync();
+
         FortuneAllowed = await CanReadFortuneAsync(autoUpdateWhenAllowed: true);
 
         if (_initialized)

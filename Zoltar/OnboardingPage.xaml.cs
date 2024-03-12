@@ -23,8 +23,9 @@ public partial class OnboardingPage : ContentPage
             var userProfile = JsonSerializer.Deserialize<UserProfile>(userProfileJson)!;
 
             NameEntry.Text = userProfile.Name;
-            BirthdayEntry.Text = userProfile.Birthday.ToShortDateString();
+            BirthdayEntry.Text = userProfile.Birthday.HasValue ? userProfile.Birthday.Value.ToShortDateString() : null;
             UseAstrologyBtn.IsChecked = userProfile.UseAstrology;
+            AnnounceFortuneBtn.IsChecked = userProfile.AnnounceFortune;
         }
         catch (Exception)
         {
@@ -37,13 +38,17 @@ public partial class OnboardingPage : ContentPage
         var name = NameEntry.Text;
         var birthdayText = BirthdayEntry.Text;
 
-        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(birthdayText))
+        // Minimum requirement, their name
+        if (string.IsNullOrWhiteSpace(name))
         {
-            await DisplayAlert("Error", "Please enter both your name and birthday.", "OK");
+            await DisplayAlert("Error", "Please enter at least your name.", "OK");
             return;
         }
 
-        if (!DateTime.TryParse(birthdayText, out DateTime birthday))
+        // Bday is optional
+        var hasBirthday = birthdayText is { Length: > 0 };
+        DateTime birthday = default;
+        if (hasBirthday && !DateTime.TryParse(birthdayText, out birthday))
         {
             await DisplayAlert("Error", "Invalid birthday format. Please use the format: MM/DD/YYYY", "OK");
             return;
@@ -53,11 +58,17 @@ public partial class OnboardingPage : ContentPage
         var userProfile = new UserProfile
         {
             Name = name,
-            Birthday = birthday,
-            UseAstrology = UseAstrologyBtn.IsChecked
+            Birthday = hasBirthday ? birthday : null,
+            UseAstrology = UseAstrologyBtn.IsChecked,
+            AnnounceFortune = AnnounceFortuneBtn.IsChecked
         };
 
         await SecureStorage.SetAsync(Constants.USER_PROFILE_KEY, JsonSerializer.Serialize(userProfile));
         await Shell.Current.GoToAsync($"///{nameof(MainPage)}");
+    }
+
+    private void BirthdayEntry_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        UseAstrologyBtn.IsEnabled = e.NewTextValue.Length > 0;
     }
 }

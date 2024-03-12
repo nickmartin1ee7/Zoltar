@@ -3,8 +3,9 @@
 public record UserProfile
 {
     public string Name { get; set; }
-    public DateTime Birthday { get; set; }
+    public DateTime? Birthday { get; set; }
     public bool UseAstrology { get; set; }
+    public bool AnnounceFortune { get; set; }
     public string Luck => $"{Random.Shared.NextDouble() switch
     {
         >= .85 => "incredibly fortunate",
@@ -19,8 +20,15 @@ public record UserProfile
     {
         get
         {
-            int month = Birthday.Month;
-            int day = Birthday.Day;
+            const string DEFAULT_SIGN = "Unknown";
+
+            if (!Birthday.HasValue)
+            {
+                return DEFAULT_SIGN;
+            }
+
+            int month = Birthday.Value.Month;
+            int day = Birthday.Value.Day;
 
             switch (month)
             {
@@ -62,7 +70,7 @@ public record UserProfile
                 case 3 when day <= 20:
                     return "Pisces";
                 default:
-                    return "Unknown";
+                    return DEFAULT_SIGN;
             }
         }
     }

@@ -1,43 +1,47 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Zoltar.OnboardingPage">
-    <ScrollView>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="Zoltar.OnboardingPage">
+    <ScrollView
+        VerticalOptions="Center">
         <VerticalStackLayout
-        Spacing="10"
-        VerticalOptions="Fill">
+            Spacing="16">
             <Entry
-          x:Name="NameEntry"
-          HorizontalOptions="Fill"
-          HorizontalTextAlignment="Center"
-          VerticalOptions="Center"
-          Placeholder="Enter your Name"/>
-
+                x:Name="NameEntry"
+                HorizontalOptions="Fill"
+                HorizontalTextAlignment="Center"
+                VerticalOptions="Center"
+                Placeholder="Enter your Name*" />
             <Entry
-          x:Name="BirthdayEntry"
-          HorizontalOptions="Fill"
-          HorizontalTextAlignment="Center"
-          VerticalOptions="Center"
-          Placeholder="Enter your Birthday"/>
-
-            <VerticalStackLayout>
-                <Label
-              HorizontalOptions="Fill"
-            HorizontalTextAlignment="Center"
-              VerticalOptions="Center"
-              Text="Use Astrology?"
-              />
-                <CheckBox
-              x:Name="UseAstrologyBtn"
-              HorizontalOptions="Fill"
-              VerticalOptions="Center"
-              />
-            </VerticalStackLayout>
-
+                x:Name="BirthdayEntry"
+                HorizontalOptions="Fill"
+                HorizontalTextAlignment="Center"
+                VerticalOptions="Center"
+                TextChanged="BirthdayEntry_TextChanged"
+                Placeholder="Enter your Birthday (MM/DD/YYYY)" />
+            <HorizontalStackLayout
+                HorizontalOptions="Center"
+                Spacing="32"
+                Margin="16">
+                <VerticalStackLayout>
+                    <Label
+                        Text="🌙 Use Astrology?" />
+                    <CheckBox
+                        IsEnabled="False"
+                        x:Name="UseAstrologyBtn" />
+                </VerticalStackLayout>
+                <VerticalStackLayout>
+                    <Label
+                        Text="🔊 Announce Fortune?" />
+                    <CheckBox
+                        x:Name="AnnounceFortuneBtn" />
+                </VerticalStackLayout>
+            </HorizontalStackLayout>
             <Button
-          Text="Submit"
-          Clicked="OnSubmitButtonClicked"/>
+                Text="Submit"
+                Clicked="OnSubmitButtonClicked" />
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

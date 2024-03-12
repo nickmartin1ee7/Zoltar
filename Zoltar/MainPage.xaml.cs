@@ -18,7 +18,6 @@ public partial class MainPage : ContentPage
 
     private async void SpecialInteraction_OnClicked(object sender, EventArgs e)
     {
-        _vm.FortuneAllowed = true;
         await _vm.InvokeSpecialInteractionAsync();
     }
 }
