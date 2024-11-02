@@ -70,7 +70,7 @@ public class MainPageViewModel : INotifyPropertyChanged
     {
         try
         {
-            var lastFortune = JsonSerializer.Deserialize<FortuneApiResponse>(await SecureStorage.GetAsync(Constants.LAST_FORTUNE_KEY));
+            var lastFortune = JsonSerializer.Deserialize<GenerateResponse>(await SecureStorage.GetAsync(Constants.LAST_FORTUNE_KEY));
             SetValuesFromApiResponse(lastFortune);
             _logger.LogInformation("Loaded last fortune from storage successfully");
         }
@@ -80,17 +80,18 @@ public class MainPageViewModel : INotifyPropertyChanged
         }
     }
 
-    private void SetValuesFromApiResponse(FortuneApiResponse fortuneResponse)
+    private void SetValuesFromApiResponse(GenerateResponse fortuneResponse)
     {
-        if (!string.IsNullOrWhiteSpace(fortuneResponse.Fortune))
+        var fortune = $"{fortuneResponse.fortune.header} - {fortuneResponse.fortune.body}";
+        if (!string.IsNullOrWhiteSpace(fortune))
         {
-            var formattedResponse = FormatFortuneText(fortuneResponse.Fortune);
+            var formattedResponse = FormatFortuneText(fortune);
             FortuneText = formattedResponse;
         }
 
-        if (!string.IsNullOrWhiteSpace(fortuneResponse.LuckText))
+        if (!string.IsNullOrWhiteSpace(fortuneResponse.luckText))
         {
-            FortuneHeader = $"Your luck today is {fortuneResponse.LuckText}";
+            FortuneHeader = $"Your luck today is {fortuneResponse.luckText}";
         }
     }
 
@@ -211,7 +212,7 @@ public class MainPageViewModel : INotifyPropertyChanged
 
             _logger.LogInformation("User requested fortune");
 
-            FortuneApiResponse result = null;
+            GenerateResponse result = null;
             HttpResponseMessage response = null;
 
             try
@@ -221,15 +222,15 @@ public class MainPageViewModel : INotifyPropertyChanged
                 requestContent.Headers.Add("X-API-KEY", _settings.Api.ApiKey);
 
                 response = await _client.PostAsync($"{_settings.Api.Url}/generate", requestContent);
-                result = await response.Content.ReadFromJsonAsync<FortuneApiResponse>();
-                result.LuckText ??= Luck;
+                result = await response.Content.ReadFromJsonAsync<GenerateResponse>();
+                result.luckText ??= Luck;
             }
             catch (Exception exception)
             {
                 _logger.LogError(exception, "Failed to communicate API. Response code: {responseCode}", response?.StatusCode);
             }
 
-            if (result?.Fortune is null)
+            if (result?.fortune is null)
             {
                 _logger.LogWarning("User saw no fortune");
 
