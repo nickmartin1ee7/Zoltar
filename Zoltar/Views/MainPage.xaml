@@ -1,42 +1,35 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:zoltar="clr-namespace:Zoltar"
+             xmlns:animations="clr-namespace:Zoltar.Animations"
+             xmlns:vm="clr-namespace:Zoltar"
+             x:DataType="vm:MainPageViewModel"
              x:Class="Zoltar.MainPage"
-             x:DataType="zoltar:MainPageViewModel"
              Title="Fortune Teller">
+
     <ScrollView>
         <Grid
-            Padding="30,0,30,5"
-            VerticalOptions="Center"
-            ColumnDefinitions="*,*"
-            RowDefinitions="Auto,*,Auto,*,Auto,Auto,Auto">
-			<Button
-                Grid.Column="0"
-                Grid.Row="0"
-                VerticalOptions="Center"
-                HorizontalOptions="Start"
-                BackgroundColor="Transparent"
-                FontSize="Large"
-                Text="🗓️"
-                Command="{Binding ShowPreviousFortunesCommand}" />
-			<Button
-                Grid.Column="1"
-                Grid.Row="0"
-                VerticalOptions="Center"
-                HorizontalOptions="End"
-                BackgroundColor="Transparent"
-                FontSize="Large"
-                Text="⚙️"
-                Command="{Binding OnboardUserCommand}" />
+            VerticalOptions="Start"
+            HorizontalOptions="Center"
+            Padding="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
             <WebView
+                Grid.Row="0"
                 Grid.Column="0"
-				Grid.ColumnSpan="2"
-                Grid.Row="1"
                 HorizontalOptions="Fill"
                 VerticalOptions="Fill"
-                Margin="0,0,0,25"
                 Focused="SpecialInteraction_OnClicked"
                 BackgroundColor="Transparent">
                 <WebView.Source>
@@ -54,83 +47,105 @@
                 </WebView.Source>
             </WebView>
 
-            <Label
-                Grid.Column="0"
-				Grid.ColumnSpan="2"
-                Grid.Row="2"
-                Text="{Binding FortuneHeader}"
-                FontSize="Large"
-                FontAttributes="Bold"
-                Margin="0,0,0,25"
-                HorizontalOptions="Center"
-                HorizontalTextAlignment="Center" />
-
-            <ActivityIndicator
-                Grid.Column="0"
-				Grid.ColumnSpan="2"
-                Grid.Row="3"
-                HorizontalOptions="Center"
-                IsRunning="{Binding IsLoading}" />
-
+            <!-- User's Fortune Title -->
             <Editor
+                Grid.Row="1"
                 Grid.Column="0"
-				Grid.ColumnSpan="2"
+                Text="{Binding FortuneHeaderText}"
+                IsReadOnly="True"
+                AutoSize="TextChanges"
+                FontSize="Title"
+                FontAttributes="Bold"
+                HorizontalOptions="Center"
+                VerticalOptions="Start">
+                <Editor.Triggers>
+                    <EventTrigger Event="TextChanged">
+                        <animations:FadeInAnimation Duration="1000" />
+                    </EventTrigger>
+                </Editor.Triggers>
+            </Editor>
+
+            <!-- User's Fortune Body -->
+            <Editor
+                Grid.Row="2"
+                Grid.Column="0"
+                Text="{Binding FortuneBodyText}"
+                IsReadOnly="True"
+                AutoSize="TextChanges"
+                FontSize="Large"
+                VerticalTextAlignment="Center"
+                HorizontalTextAlignment="Center">
+                <Editor.Triggers>
+                    <EventTrigger Event="TextChanged">
+                        <animations:FadeInAnimation Duration="1500" />
+                    </EventTrigger>
+                </Editor.Triggers>
+            </Editor>
+
+            <!-- User's Fortune Luck -->
+            <Editor
                 Grid.Row="3"
-                Text="{Binding FortuneText}"
+                Grid.Column="0"
+                Text="{Binding FortuneLuckText}"
+                IsReadOnly="True"
                 AutoSize="TextChanges"
                 FontSize="Medium"
-                IsReadOnly="True"
-                IsSpellCheckEnabled="False"
-                Placeholder="Zoltar awaits your command."
-                Margin="0,0,0,25"
-                HorizontalTextAlignment="Center" />
+                FontAttributes="Italic"
+                VerticalTextAlignment="Center"
+                HorizontalTextAlignment="Center">
+                <Editor.Triggers>
+                    <EventTrigger Event="TextChanged">
+                        <animations:FadeInAnimation Duration="2000" />
+                    </EventTrigger>
+                </Editor.Triggers>
+            </Editor>
 
-            <Label
-                Grid.Column="0"
-				Grid.ColumnSpan="2"
-                Grid.Row="4"
-                IsVisible="{Binding WaitTimeVisible}"
-                Text="{Binding WaitTimeText}"
-                FontSize="Small"
-                Margin="0,0,0,25"
-                HorizontalOptions="Center" />
-
+            <!-- Button to request a fortune be divined -->
             <Button
-                x:Name="FortuneButton"
+                Grid.Row="4"
                 Grid.Column="0"
-				Grid.ColumnSpan="2"
-                Grid.Row="5"
-                IsEnabled="{Binding FortuneAllowed}"
-                Text="Tell me my fortune"
-                Command="{Binding GetFortuneCommand}"
-                Margin="0,0,0,25"
+                Text="Divine My Fortune"
+                FontSize="Medium"
+                FontAttributes="Bold"
                 HorizontalOptions="Center"
-                Clicked="SpecialInteraction_OnClicked">
+                VerticalOptions="Center"
+                Margin="8"
+                IsEnabled="{Binding IsFortuneAllowed}"
+                Command="{Binding GetFortuneCommand}">
                 <Button.Triggers>
-                    <DataTrigger
-                        TargetType="Button"
-                        Binding="{Binding FortuneAllowed}"
-                        Value="True">
-                        <Setter
-                            Property="Text"
-                            Value="Tell me my fortune" />
-                        <Setter
-                            Property="IsEnabled"
-                            Value="True" />
-                    </DataTrigger>
-                    <DataTrigger
-                        TargetType="Button"
-                        Binding="{Binding FortuneAllowed}"
-                        Value="False">
-                        <Setter
-                            Property="Text"
-                            Value="Fate has been decided" />
-                        <Setter
-                            Property="IsEnabled"
-                            Value="False" />
-                    </DataTrigger>
+                    <EventTrigger Event="Clicked">
+                        <animations:ShakeAnimation Duration="5000" />
+                    </EventTrigger>
                 </Button.Triggers>
             </Button>
+
+            <!-- Status text while the fortune is being generated -->
+            <Label
+                Grid.Row="5"
+                Grid.Column="0"
+                Text="{Binding WaitTimeText}"
+                FontSize="Small"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Margin="8"
+                IsVisible="{Binding IsWaitTimeVisible}">
+                <Label.Triggers>
+                    <EventTrigger Event="Appearing">
+                        <animations:FadeInAnimation Duration="2000" />
+                    </EventTrigger>
+                    <EventTrigger Event="TextChanged">
+                        <animations:FadeInAnimation Duration="2000" />
+                    </EventTrigger>
+                </Label.Triggers>
+            </Label>
+
+            <!-- Loading Indicator -->
+            <ActivityIndicator
+                Grid.Row="4"
+                Grid.Column="0"
+                IsRunning="{Binding IsLoading}"
+                HorizontalOptions="Center"
+                VerticalOptions="Center" />
         </Grid>
     </ScrollView>
 </ContentPage>

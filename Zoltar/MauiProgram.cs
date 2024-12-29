@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.FeatureManagement;
+using Microsoft.Maui.Controls.Compatibility.Platform.Android;
 
 using Serilog;
 
@@ -76,6 +77,17 @@ public static class MauiProgram
             })
             .AddFeatureManagement();
 
+        SetCustomHandlers();
+
         return builder.Build();
+    }
+
+    private static void SetCustomHandlers()
+    {
+        Microsoft.Maui.Handlers.EditorHandler.Mapper.AppendToMapping("NoUnderline", (h, v) =>
+        {
+            // Set underline color to transparent for Android
+            h.PlatformView.BackgroundTintList = Android.Content.Res.ColorStateList.ValueOf(Colors.Transparent.ToAndroid());
+        });
     }
 }

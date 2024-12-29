@@ -61,11 +61,10 @@
 						Grid.Column="2"
 						Grid.Row="1"
 						Margin="8,0"
-						FontAttributes="Italic"
 						HorizontalTextAlignment="End"
 						FontSize="Small"
 						VerticalTextAlignment="Center"
-						Text="{Binding GenerateResponse.luckText}" />
+						Text="{Binding GenerateResponse.luckText, StringFormat='{0} luck'}" />
 					<Label
 						Grid.Column="0"
 						Grid.ColumnSpan="3"

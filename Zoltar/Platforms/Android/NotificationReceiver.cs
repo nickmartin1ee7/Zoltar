@@ -11,8 +11,10 @@ public class NotificationReceiver : BroadcastReceiver
 {
     public const string INTENT_FILTER = "com.gitgoodsoftware.zoltar.NOTIFICATION_TRIGGER";
 
-    public override void OnReceive(Context context, Intent intent)
+    public override void OnReceive(Context? context, Intent? intent)
     {
+        ArgumentNullException.ThrowIfNull(context);
+
         SendNotification(
             context,
             "Your Fate Has Changed",

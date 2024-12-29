@@ -51,7 +51,9 @@ public class CustomConfigurationProvider
 
             _hadError = false;
         }
+#pragma warning disable CS0168 // Variable is declared but never used
         catch (Exception _)
+#pragma warning restore CS0168 // Variable is declared but never used
         {
             _config = configBuilder
                 .AddConfiguration(tempConfig)

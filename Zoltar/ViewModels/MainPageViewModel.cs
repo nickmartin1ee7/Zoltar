@@ -24,7 +24,6 @@ public partial class MainPageViewModel(
     : ObservableObject
 {
     private const int MAX_SPECIAL_INTERACTIONS = 5;
-    private const string DEFAULT_FORTUNE_HEADER = "Zoltar, The Fortune Teller";
 
     private ZoltarSettings Settings => configProvider
         .Configure()
@@ -36,36 +35,39 @@ public partial class MainPageViewModel(
     private UserProfile? _userProfile;
 
     [ObservableProperty]
-    private string _fortuneHeader = DEFAULT_FORTUNE_HEADER;
+    private string? _fortuneHeaderText;
 
     [ObservableProperty]
-    private string? _fortuneText;
+    private string? _fortuneBodyText;
+
+    [ObservableProperty]
+    private string? _fortuneLuckText;
 
     [ObservableProperty]
     private string? _waitTimeText;
 
     [ObservableProperty]
+    private bool _isWaitTimeVisible;
+
+    [ObservableProperty]
     private bool _isLoading;
 
     [ObservableProperty]
-    private bool _waitTimeVisible;
-
-    [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(GetFortuneCommand))]
-    private bool _fortuneAllowed;
+    private bool _isFortuneAllowed;
 
-    [RelayCommand(CanExecute = nameof(FortuneAllowed))]
+    [RelayCommand(CanExecute = nameof(IsFortuneAllowed))]
     private async Task GetFortune()
     {
         try
         {
-            if (!FortuneAllowed
+            if (!IsFortuneAllowed
                 || _userProfile is null)
             {
                 return;
             }
 
-            FortuneAllowed = false;
+            IsFortuneAllowed = false;
             IsLoading = true;
 
             logger.LogInformation("User requested fortune");
@@ -93,25 +95,29 @@ public partial class MainPageViewModel(
             if (result?.fortune is null)
             {
                 logger.LogWarning("User saw no fortune");
-
-                FortuneHeader = DEFAULT_FORTUNE_HEADER;
-                FortuneText = "Zoltar remains silent.";
-                FortuneAllowed = true;
+                SetFortuneText(
+                    header: "...",
+                    body: "Zoltar remains silent.",
+                    luck: string.Empty);
+                IsFortuneAllowed = true;
                 return;
             }
 
             SetValuesFromApiResponse(result);
-
             await SaveLastFortune(result);
 
             if (_userProfile?.AnnounceFortune ?? false
-                && !string.IsNullOrWhiteSpace(FortuneText))
+                && !string.IsNullOrWhiteSpace(FortuneHeaderText)
+                && !string.IsNullOrWhiteSpace(FortuneBodyText)
+                && !string.IsNullOrWhiteSpace(FortuneLuckText))
             {
-                _ = Task.Run(async () => await TextToSpeech.SpeakAsync(FortuneText!));
+                _ = Task.Run(async () => await TextToSpeech.SpeakAsync($"Your luck is {FortuneLuckText}. " +
+                    FortuneHeaderText +
+                    " - " +
+                    FortuneLuckText));
             }
 
-            FortuneAllowed = await CanReadFortuneAsync(autoUpdateWhenAllowed: true);
-
+            IsFortuneAllowed = await CanReadFortuneAsync(autoUpdateWhenAllowed: true);
             logger.LogInformation("User received fortune");
         }
         finally
@@ -138,8 +144,10 @@ public partial class MainPageViewModel(
         try
         {
             var lastFortuneJson = await SecureStorage.GetAsync(Constants.LAST_FORTUNE_KEY);
-            var lastFortune = JsonSerializer.Deserialize<GenerateResponse>(lastFortuneJson ?? throw new ArgumentNullException(nameof(lastFortuneJson)));
-            SetValuesFromApiResponse(lastFortune);
+            var lastFortune = JsonSerializer.Deserialize<GenerateResponse>(lastFortuneJson
+                ?? throw new ArgumentNullException(nameof(lastFortuneJson)));
+            SetValuesFromApiResponse(lastFortune
+                ?? throw new ArgumentNullException(nameof(lastFortune)));
             logger.LogInformation("Loaded last fortune from storage successfully");
         }
         catch (Exception exception)
@@ -150,17 +158,12 @@ public partial class MainPageViewModel(
 
     private void SetValuesFromApiResponse(GenerateResponse fortuneResponse)
     {
-        if (fortuneResponse?.fortune is not null)
-        {
-            var fortune = $"{fortuneResponse.fortune.header} - {fortuneResponse.fortune.body}";
-            var formattedResponse = FormatFortuneText(fortune);
-            FortuneText = formattedResponse;
-        }
-
-        if (!string.IsNullOrWhiteSpace(fortuneResponse?.luckText))
-        {
-            FortuneHeader = $"Your luck today is {fortuneResponse.luckText}";
-        }
+        SetFortuneText(
+            header: fortuneResponse?.fortune?.header ?? string.Empty,
+            body: fortuneResponse?.fortune?.body ?? string.Empty,
+            luck: !string.IsNullOrWhiteSpace(fortuneResponse?.luckText)
+                ? $"Your luck today is {fortuneResponse.luckText.Trim()}"
+                : string.Empty);
     }
 
     private async Task<bool> CanReadFortuneAsync(bool autoUpdateWhenAllowed = false, bool skipWait = false)
@@ -169,7 +172,7 @@ public partial class MainPageViewModel(
 
         try
         {
-            WaitTimeVisible = false;
+            IsWaitTimeVisible = false;
 
             if (await featureManager.IsEnabledAsync(Constants.FEATURE_ZOLTAR_UNLIMITED))
             {
@@ -197,7 +200,7 @@ public partial class MainPageViewModel(
             }
 
             WaitTimeText = $"Your fate changes at {next:MMM d h:mm:ss tt}";
-            WaitTimeVisible = true;
+            IsWaitTimeVisible = true;
 
             if (autoUpdateWhenAllowed)
             {
@@ -205,7 +208,7 @@ public partial class MainPageViewModel(
                 {
                     var untilNextRun = next.Subtract(DateTimeOffset.Now);
                     await Task.Delay(untilNextRun);
-                    FortuneAllowed = await CanReadFortuneAsync();
+                    IsFortuneAllowed = await CanReadFortuneAsync();
                 });
 
                 var unixTicksInMs = next.ToUnixTimeMilliseconds();
@@ -243,6 +246,8 @@ public partial class MainPageViewModel(
             logger.LogError(e, "Unable to read if user had been prompted for notifications before");
         }
 
+        await TryAskForNotificationsPermission();
+
         if (shouldPrompt && !AreDeviceNotificationsEnabled())
         {
             var userPermissionResult = await Application.Current!.MainPage!.DisplayAlert(
@@ -276,6 +281,16 @@ public partial class MainPageViewModel(
     private static bool AreDeviceNotificationsEnabled() =>
         AndroidX.Core.App.NotificationManagerCompat.From(Platform.CurrentActivity!).AreNotificationsEnabled();
 
+    private static async Task TryAskForNotificationsPermission()
+    {
+        if (await Permissions.CheckStatusAsync<Permissions.PostNotifications>() == PermissionStatus.Granted)
+        {
+            return;
+        }
+
+        await Permissions.RequestAsync<Permissions.PostNotifications>();
+    }
+
     private static async Task SaveLastFortune(GenerateResponse result)
     {
         // Set last fortune
@@ -285,21 +300,14 @@ public partial class MainPageViewModel(
 
         // Update collection of previous fortunes
         var previousFortunes = new List<TimestampedGenerateReponse>();
-        var previousFortunesRaw = await SecureStorage.GetAsync(Constants.PREVIOUS_FORTUNES_KEY);
-        if (previousFortunesRaw is not null)
+        var previousFortunesJson = await SecureStorage.GetAsync(Constants.PREVIOUS_FORTUNES_KEY);
+        if (previousFortunesJson is not null)
         {
-            previousFortunes = JsonSerializer.Deserialize<List<TimestampedGenerateReponse>>(previousFortunesRaw);
+            previousFortunes = JsonSerializer.Deserialize<List<TimestampedGenerateReponse>>(previousFortunesJson)
+                ?? throw new ArgumentNullException(nameof(previousFortunesJson));
         }
         previousFortunes.Add(new(result, DateTime.Now));
         await SecureStorage.SetAsync(Constants.PREVIOUS_FORTUNES_KEY, JsonSerializer.Serialize(previousFortunes));
-    }
-
-    private static string FormatFortuneText(string fortuneText)
-    {
-        return fortuneText
-            .Replace("\"", string.Empty)
-            .TrimStart()
-            .TrimEnd();
     }
 
     private static (string Context, string Luck) BuildPrompt(UserProfile userProfile)
@@ -331,7 +339,7 @@ public partial class MainPageViewModel(
         await CheckForNotificationsPermissionAsync();
         await TryOnboardNewUserAsync();
 
-        FortuneAllowed = await CanReadFortuneAsync(autoUpdateWhenAllowed: true);
+        IsFortuneAllowed = await CanReadFortuneAsync(autoUpdateWhenAllowed: true);
 
         if (_initialized)
         {
@@ -367,6 +375,13 @@ public partial class MainPageViewModel(
         }
     }
 
+    private void SetFortuneText(string header, string body, string luck)
+    {
+        FortuneHeaderText = header.Replace("\n", string.Empty).Trim();
+        FortuneBodyText = body.Replace("\n", string.Empty).Trim();
+        FortuneLuckText = luck.Replace("\n", string.Empty).Trim();
+    }
+
     public async Task InvokeSpecialInteractionAsync()
     {
         if (!(await featureManager.IsEnabledAsync(Constants.FEATURE_ZOLTAR_SECRET_INTERACTION)))
@@ -382,7 +397,7 @@ public partial class MainPageViewModel(
         }
 
         _specialInteractions = 0;
-        FortuneAllowed = await CanReadFortuneAsync(skipWait: true);
+        IsFortuneAllowed = await CanReadFortuneAsync(skipWait: true);
         WaitTimeText = "Zoltar grants you another fortune.";
     }
 }
