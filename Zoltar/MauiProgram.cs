@@ -5,11 +5,14 @@ using Microsoft.FeatureManagement;
 
 using Serilog;
 
+using Zoltar.Models;
+using Zoltar.Models.Services;
+
 namespace Zoltar;
 
 public static class MauiProgram
 {
-    public static MauiApp CreateMauiApp(string userId = null)
+    public static MauiApp CreateMauiApp(string? userId = null)
     {
         AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
         {
@@ -29,7 +32,7 @@ public static class MauiProgram
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
 
-        var configProvider = new ConfigurationProvider();
+        var configProvider = new CustomConfigurationProvider();
 
         var zoltarSettingsSnapshot = configProvider
             .Configure(builder.Configuration)
@@ -38,7 +41,7 @@ public static class MauiProgram
 
         builder.Services
             .AddScoped<HttpClient>()
-            .AddSingleton<ConfigurationProvider>(configProvider)
+            .AddSingleton<CustomConfigurationProvider>(configProvider)
             .AddTransient<IAlarmScheduler, AlarmScheduler>()
             .AddTransient<PreviousFortunesViewModel>()
             .AddTransient<PreviousFortunesPage>()

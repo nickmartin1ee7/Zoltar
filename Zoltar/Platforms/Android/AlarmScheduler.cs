@@ -1,6 +1,7 @@
 ﻿using Android.App;
 using Android.Content;
 
+using Zoltar.Models.Services;
 using Zoltar.Platforms.Android;
 
 namespace Zoltar;

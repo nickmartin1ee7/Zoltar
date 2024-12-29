@@ -1,8 +1,8 @@
-﻿namespace Zoltar;
+﻿namespace Zoltar.Models;
 
 public record UserProfile
 {
-    public string Name { get; set; }
+    public string? Name { get; set; }
     public DateTime? Birthday { get; set; }
     public bool UseAstrology { get; set; }
     public bool AnnounceFortune { get; set; }

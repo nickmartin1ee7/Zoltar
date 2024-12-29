@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:zoltar="clr-namespace:Zoltar"
+    xmlns:models="clr-namespace:Zoltar.Models"
     x:DataType="zoltar:PreviousFortunesViewModel"
     x:Class="Zoltar.PreviousFortunesPage">
 	<CollectionView
@@ -25,7 +26,7 @@
 			</DataTemplate>
 		</CollectionView.HeaderTemplate>
 		<CollectionView.ItemTemplate>
-			<DataTemplate x:DataType="zoltar:TimestampedGenerateReponse">
+			<DataTemplate x:DataType="models:TimestampedGenerateReponse">
 				<Grid
 					ColumnDefinitions="Auto,*,Auto"
 					RowDefinitions="Auto,Auto,*"
@@ -35,7 +36,7 @@
 						Grid.ColumnSpan="3"
 						Grid.Row="0"
 						Grid.RowSpan="3"
-						Color="{StaticResource Secondary}"
+						Color="{AppThemeBinding Light={StaticResource Secondary}, Dark={StaticResource Tertiary}}"
 						CornerRadius="8"
 						ZIndex="-100"/>
 					<Label

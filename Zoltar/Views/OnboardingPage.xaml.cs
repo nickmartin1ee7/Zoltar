@@ -1,5 +1,7 @@
 ﻿using System.Text.Json;
 
+using Zoltar.Models;
+
 namespace Zoltar;
 
 public partial class OnboardingPage : ContentPage

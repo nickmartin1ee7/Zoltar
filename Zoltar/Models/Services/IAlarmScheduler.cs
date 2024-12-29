@@ -1,4 +1,4 @@
-﻿namespace Zoltar;
+﻿namespace Zoltar.Models.Services;
 
 public interface IAlarmScheduler
 {

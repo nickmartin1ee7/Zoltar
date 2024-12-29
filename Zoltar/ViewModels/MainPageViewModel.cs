@@ -10,49 +10,39 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.FeatureManagement;
 
+using Zoltar.Models;
+using Zoltar.Models.Services;
+
 namespace Zoltar;
 
-public partial class MainPageViewModel : ObservableObject
+public partial class MainPageViewModel(
+    HttpClient httpClient,
+    ILogger<MainPageViewModel> logger,
+    CustomConfigurationProvider configProvider,
+    IFeatureManager featureManager,
+    IAlarmScheduler alarmScheduler)
+    : ObservableObject
 {
     private const int MAX_SPECIAL_INTERACTIONS = 5;
     private const string DEFAULT_FORTUNE_HEADER = "Zoltar, The Fortune Teller";
 
-    private readonly ILogger<MainPageViewModel> _logger;
-    private readonly HttpClient _client;
-    private readonly ConfigurationProvider _configProvider;
-    private readonly IFeatureManager _featureManager;
-    private readonly IAlarmScheduler _alarmScheduler;
-
-    private ZoltarSettings Settings => _configProvider
+    private ZoltarSettings Settings => configProvider
         .Configure()
         .GetSection(nameof(ZoltarSettings))
-        .Get<ZoltarSettings>();
+        .Get<ZoltarSettings>()!;
 
     private bool _initialized;
     private int _specialInteractions;
-    private UserProfile _userProfile;
-
-    public MainPageViewModel(HttpClient httpClient,
-        ILogger<MainPageViewModel> logger,
-        ConfigurationProvider configProvider,
-        IFeatureManager featureManager,
-        IAlarmScheduler alarmScheduler)
-    {
-        _configProvider = configProvider;
-        _featureManager = featureManager;
-        _alarmScheduler = alarmScheduler;
-        _logger = logger;
-        _client = httpClient;
-    }
+    private UserProfile? _userProfile;
 
     [ObservableProperty]
     private string _fortuneHeader = DEFAULT_FORTUNE_HEADER;
 
     [ObservableProperty]
-    private string _fortuneText;
+    private string? _fortuneText;
 
     [ObservableProperty]
-    private string _waitTimeText;
+    private string? _waitTimeText;
 
     [ObservableProperty]
     private bool _isLoading;
@@ -69,7 +59,8 @@ public partial class MainPageViewModel : ObservableObject
     {
         try
         {
-            if (!FortuneAllowed)
+            if (!FortuneAllowed
+                || _userProfile is null)
             {
                 return;
             }
@@ -77,29 +68,31 @@ public partial class MainPageViewModel : ObservableObject
             FortuneAllowed = false;
             IsLoading = true;
 
-            _logger.LogInformation("User requested fortune");
+            logger.LogInformation("User requested fortune");
 
-            GenerateResponse result = null;
-            HttpResponseMessage response = null;
+            GenerateResponse? result = null;
+            HttpResponseMessage? response = null;
 
             try
             {
                 var (Context, Luck) = BuildPrompt(_userProfile);
                 var requestContent = JsonContent.Create(Context);
-                requestContent.Headers.Add("X-API-KEY", Settings.Api.ApiKey);
+                requestContent.Headers.Add("X-API-KEY", Settings?.Api?.ApiKey
+                    ?? throw new ArgumentNullException(nameof(Settings.Api.ApiKey)));
 
-                response = await _client.PostAsync($"{Settings.Api.Url}/generate", requestContent);
-                result = await response.Content.ReadFromJsonAsync<GenerateResponse>();
+                response = await httpClient.PostAsync($"{Settings.Api.Url}/generate", requestContent);
+                result = await response.Content.ReadFromJsonAsync<GenerateResponse>()
+                    ?? throw new ArgumentNullException(nameof(result));
                 result.luckText ??= Luck;
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Failed to communicate API. Response code: {responseCode}", response?.StatusCode);
+                logger.LogError(exception, "Failed to communicate API. Response code: {responseCode}", response?.StatusCode);
             }
 
             if (result?.fortune is null)
             {
-                _logger.LogWarning("User saw no fortune");
+                logger.LogWarning("User saw no fortune");
 
                 FortuneHeader = DEFAULT_FORTUNE_HEADER;
                 FortuneText = "Zoltar remains silent.";
@@ -111,15 +104,15 @@ public partial class MainPageViewModel : ObservableObject
 
             await SaveLastFortune(result);
 
-            if (_userProfile.AnnounceFortune)
+            if (_userProfile?.AnnounceFortune ?? false
+                && !string.IsNullOrWhiteSpace(FortuneText))
             {
-                _ = Task.Run(async () =>
-                    await TextToSpeech.SpeakAsync(FortuneText));
+                _ = Task.Run(async () => await TextToSpeech.SpeakAsync(FortuneText!));
             }
 
             FortuneAllowed = await CanReadFortuneAsync(autoUpdateWhenAllowed: true);
 
-            _logger.LogInformation("User received fortune");
+            logger.LogInformation("User received fortune");
         }
         finally
         {
@@ -130,7 +123,7 @@ public partial class MainPageViewModel : ObservableObject
     [RelayCommand]
     private async Task OnboardUser()
     {
-        _logger.LogInformation("Onboarding user");
+        logger.LogInformation("Onboarding user");
         await Shell.Current.GoToAsync($"///{nameof(OnboardingPage)}");
     }
 
@@ -144,26 +137,27 @@ public partial class MainPageViewModel : ObservableObject
     {
         try
         {
-            var lastFortune = JsonSerializer.Deserialize<GenerateResponse>(await SecureStorage.GetAsync(Constants.LAST_FORTUNE_KEY));
+            var lastFortuneJson = await SecureStorage.GetAsync(Constants.LAST_FORTUNE_KEY);
+            var lastFortune = JsonSerializer.Deserialize<GenerateResponse>(lastFortuneJson ?? throw new ArgumentNullException(nameof(lastFortuneJson)));
             SetValuesFromApiResponse(lastFortune);
-            _logger.LogInformation("Loaded last fortune from storage successfully");
+            logger.LogInformation("Loaded last fortune from storage successfully");
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "Failed to load last fortune from storage");
+            logger.LogError(exception, "Failed to load last fortune from storage");
         }
     }
 
     private void SetValuesFromApiResponse(GenerateResponse fortuneResponse)
     {
-        var fortune = $"{fortuneResponse.fortune.header} - {fortuneResponse.fortune.body}";
-        if (!string.IsNullOrWhiteSpace(fortune))
+        if (fortuneResponse?.fortune is not null)
         {
+            var fortune = $"{fortuneResponse.fortune.header} - {fortuneResponse.fortune.body}";
             var formattedResponse = FormatFortuneText(fortune);
             FortuneText = formattedResponse;
         }
 
-        if (!string.IsNullOrWhiteSpace(fortuneResponse.luckText))
+        if (!string.IsNullOrWhiteSpace(fortuneResponse?.luckText))
         {
             FortuneHeader = $"Your luck today is {fortuneResponse.luckText}";
         }
@@ -177,7 +171,7 @@ public partial class MainPageViewModel : ObservableObject
         {
             WaitTimeVisible = false;
 
-            if (await _featureManager.IsEnabledAsync(Constants.FEATURE_ZOLTAR_UNLIMITED))
+            if (await featureManager.IsEnabledAsync(Constants.FEATURE_ZOLTAR_UNLIMITED))
             {
                 return true;
             }
@@ -215,7 +209,7 @@ public partial class MainPageViewModel : ObservableObject
                 });
 
                 var unixTicksInMs = next.ToUnixTimeMilliseconds();
-                _alarmScheduler.ScheduleNotification(unixTicksInMs);
+                alarmScheduler.ScheduleNotification(unixTicksInMs);
             }
 
             if (skipWait)
@@ -227,7 +221,7 @@ public partial class MainPageViewModel : ObservableObject
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "Failed to read last fortune usage from storage");
+            logger.LogError(exception, "Failed to read last fortune usage from storage");
             return true;
         }
     }
@@ -246,7 +240,7 @@ public partial class MainPageViewModel : ObservableObject
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Unable to read if user had been prompted for notifications before");
+            logger.LogError(e, "Unable to read if user had been prompted for notifications before");
         }
 
         if (shouldPrompt && !AreDeviceNotificationsEnabled())
@@ -268,7 +262,7 @@ public partial class MainPageViewModel : ObservableObject
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Unable to set the user's preference for notifications");
+                logger.LogError(e, "Unable to set the user's preference for notifications");
             }
         }
 #endif
@@ -350,7 +344,7 @@ public partial class MainPageViewModel : ObservableObject
 
         _initialized = true;
 
-        _logger.LogInformation("Application initialized");
+        logger.LogInformation("Application initialized");
     }
 
     public async Task TryOnboardNewUserAsync()
@@ -365,17 +359,17 @@ public partial class MainPageViewModel : ObservableObject
                 userProfileJson = await SecureStorage.GetAsync(Constants.USER_PROFILE_KEY);
             }
 
-            _userProfile = JsonSerializer.Deserialize<UserProfile>(userProfileJson);
+            _userProfile = JsonSerializer.Deserialize<UserProfile>(userProfileJson ?? throw new ArgumentNullException(nameof(userProfileJson)));
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Failed to load user profile from storage");
+            logger.LogError(e, "Failed to load user profile from storage");
         }
     }
 
     public async Task InvokeSpecialInteractionAsync()
     {
-        if (!(await _featureManager.IsEnabledAsync(Constants.FEATURE_ZOLTAR_SECRET_INTERACTION)))
+        if (!(await featureManager.IsEnabledAsync(Constants.FEATURE_ZOLTAR_SECRET_INTERACTION)))
         {
             return;
         }

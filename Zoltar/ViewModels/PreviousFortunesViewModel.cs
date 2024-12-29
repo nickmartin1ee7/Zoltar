@@ -2,12 +2,14 @@
 
 using CommunityToolkit.Mvvm.ComponentModel;
 
+using Zoltar.Models;
+
 namespace Zoltar;
 
 public partial class PreviousFortunesViewModel : ObservableObject
 {
     [ObservableProperty]
-    private List<TimestampedGenerateReponse> _previousFortunes;
+    private List<TimestampedGenerateReponse>? _previousFortunes;
 
     public async Task InitializeAsync()
     {
@@ -17,7 +19,8 @@ public partial class PreviousFortunesViewModel : ObservableObject
             return;
         }
 
-        var tempPreviousFortunes = JsonSerializer.Deserialize<List<TimestampedGenerateReponse>>(previousFortunesJson);
+        var tempPreviousFortunes = JsonSerializer.Deserialize<List<TimestampedGenerateReponse>>(previousFortunesJson)
+            ?? throw new ArgumentNullException(nameof(previousFortunesJson));
 
         // Fault detection
         if (tempPreviousFortunes.Any(x => x.GenerateResponse is null))
