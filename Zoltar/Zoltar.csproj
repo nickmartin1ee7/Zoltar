@@ -80,6 +80,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="Microsoft.Maui.Controls" Version="8.0.6" />
     <PackageReference Include="Microsoft.AppCenter" Version="5.0.3" />
 		<PackageReference Include="Microsoft.AppCenter.Analytics" Version="5.0.3" />
@@ -110,6 +111,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <MauiXaml Update="PreviousFortunesPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="OnboardingPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>

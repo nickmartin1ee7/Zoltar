@@ -40,6 +40,7 @@
                 </VerticalStackLayout>
             </HorizontalStackLayout>
             <Button
+				Margin="24,0"
                 Text="Submit"
                 Clicked="OnSubmitButtonClicked" />
         </VerticalStackLayout>

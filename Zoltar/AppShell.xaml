@@ -31,7 +31,7 @@
 		Title="🥠 Previous Fortunes"
 		Route="PreviousFortunesPage">
 		<ShellContent
-            ContentTemplate="{DataTemplate local:MainPage}" />
+            ContentTemplate="{DataTemplate local:PreviousFortunesPage}" />
 	</FlyoutItem>
 	<FlyoutItem
 		Title="⚙️ Onboarding"

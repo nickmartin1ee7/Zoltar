@@ -5,6 +5,9 @@ using System.Text;
 using System.Text.Json;
 using System.Windows.Input;
 
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+
 using Microsoft.AppCenter.Distribute;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -12,7 +15,7 @@ using Microsoft.FeatureManagement;
 
 namespace Zoltar;
 
-public class MainPageViewModel : INotifyPropertyChanged
+public partial class MainPageViewModel : ObservableObject
 {
     private const int MAX_SPECIAL_INTERACTIONS = 5;
     private const string DEFAULT_FORTUNE_HEADER = "Zoltar, The Fortune Teller";
@@ -242,8 +245,7 @@ public class MainPageViewModel : INotifyPropertyChanged
 
             SetValuesFromApiResponse(result);
 
-            await SecureStorage.SetAsync(Constants.LAST_FORTUNE_USE_KEY, DateTimeOffset.Now.ToString());
-            await SecureStorage.SetAsync(Constants.LAST_FORTUNE_KEY, JsonSerializer.Serialize(result));
+            await SaveLastFortune(result);
 
             if (_userProfile.AnnounceFortune)
             {
@@ -259,6 +261,24 @@ public class MainPageViewModel : INotifyPropertyChanged
         {
             IsLoading = false;
         }
+    }
+
+    private static async Task SaveLastFortune(GenerateResponse result)
+    {
+        // Set last fortune
+        var resultJson = JsonSerializer.Serialize(result);
+        await SecureStorage.SetAsync(Constants.LAST_FORTUNE_USE_KEY, DateTimeOffset.Now.ToString());
+        await SecureStorage.SetAsync(Constants.LAST_FORTUNE_KEY, resultJson);
+
+        // Update collection of previous fortunes
+        var previousFortunes = new List<TimestampedGenerateReponse>();
+        var previousFortunesRaw = await SecureStorage.GetAsync(Constants.PREVIOUS_FORTUNES_KEY);
+        if (previousFortunesRaw is not null)
+        {
+            previousFortunes = JsonSerializer.Deserialize<List<TimestampedGenerateReponse>>(previousFortunesRaw);
+        }
+        previousFortunes.Add(new (result, DateTime.Now));
+        await SecureStorage.SetAsync(Constants.PREVIOUS_FORTUNES_KEY, JsonSerializer.Serialize(previousFortunes));
     }
 
     private static string FormatFortuneText(string fortuneText)
@@ -414,12 +434,11 @@ public class MainPageViewModel : INotifyPropertyChanged
         }
     }
 
-    public event PropertyChangedEventHandler PropertyChanged;
-
     public ICommand FortuneCommand { get; }
 
-    protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+    [RelayCommand]
+    private async Task PreviousFortunes()
     {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        await Shell.Current.GoToAsync($"///{nameof(PreviousFortunesPage)}");
     }
 }

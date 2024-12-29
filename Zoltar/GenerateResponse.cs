@@ -13,3 +13,7 @@ public class FortuneResponse
     public string header { get; set; }
     public string body { get; set; }
 }
+
+public record TimestampedGenerateReponse(
+    GenerateResponse GenerateResponse,
+    DateTime Timestamp);

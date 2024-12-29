@@ -1,0 +1,80 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:zoltar="clr-namespace:Zoltar"
+    x:DataType="zoltar:PreviousFortunesViewModel"
+    x:Class="Zoltar.PreviousFortunesPage">
+	<CollectionView
+		ItemsSource="{Binding PreviousFortunes}">
+		<CollectionView.HeaderTemplate>
+			<DataTemplate>
+				<VerticalStackLayout>
+					<Label
+						Margin="8,16,8,8"
+						Text="🗓️ Previously Divined Fortunes 🥠"
+						FontSize="Large"
+						FontAttributes="Bold"
+						HorizontalOptions="Center"/>
+					<BoxView
+						Margin="8,8"
+						BackgroundColor="Black"
+						HeightRequest="1" />
+				</VerticalStackLayout>
+			</DataTemplate>
+		</CollectionView.HeaderTemplate>
+		<CollectionView.ItemTemplate>
+			<DataTemplate x:DataType="zoltar:TimestampedGenerateReponse">
+				<Grid
+					ColumnDefinitions="Auto,*,Auto"
+					RowDefinitions="Auto,Auto,*"
+					Margin="16">
+					<BoxView
+						Grid.Column="0"
+						Grid.ColumnSpan="3"
+						Grid.Row="0"
+						Grid.RowSpan="3"
+						Color="{StaticResource Secondary}"
+						CornerRadius="8"
+						ZIndex="-100"/>
+					<Label
+						Grid.Column="0"
+						Grid.ColumnSpan="3"
+						Grid.Row="0"
+						Margin="8"
+						FontAttributes="Bold"
+						FontSize="Medium"
+						HorizontalTextAlignment="Center"
+						VerticalTextAlignment="Center"
+						Text="{Binding GenerateResponse.fortune.header}" />
+					<Label
+						Grid.Column="0"
+						Grid.Row="1"
+						Margin="8,0"
+						FontSize="Small"
+						HorizontalTextAlignment="Start"
+						VerticalTextAlignment="Center"
+						Text="{Binding Timestamp, StringFormat='{g}'}" />
+					<Label
+						Grid.Column="2"
+						Grid.Row="1"
+						Margin="8,0"
+						FontAttributes="Italic"
+						HorizontalTextAlignment="End"
+						FontSize="Small"
+						VerticalTextAlignment="Center"
+						Text="{Binding GenerateResponse.luckText}" />
+					<Label
+						Grid.Column="0"
+						Grid.ColumnSpan="3"
+						Grid.Row="2"
+						Margin="8"
+						HorizontalTextAlignment="Start"
+						VerticalTextAlignment="Center"
+						Text="{Binding GenerateResponse.fortune.body}" />
+				</Grid>
+			</DataTemplate>
+		</CollectionView.ItemTemplate>
+	</CollectionView>
+</ContentPage>
