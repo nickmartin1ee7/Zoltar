@@ -19,7 +19,7 @@
                 BackgroundColor="Transparent"
                 FontSize="Large"
                 Text="🗓️"
-                Command="{Binding PreviousFortunesCommand}" />
+                Command="{Binding ShowPreviousFortunesCommand}" />
 			<Button
                 Grid.Column="1"
                 Grid.Row="0"
@@ -28,7 +28,7 @@
                 BackgroundColor="Transparent"
                 FontSize="Large"
                 Text="⚙️"
-                Command="{Binding OnboardCommand}" />
+                Command="{Binding OnboardUserCommand}" />
 
             <WebView
                 Grid.Column="0"
@@ -102,7 +102,7 @@
                 Grid.Row="5"
                 IsEnabled="{Binding FortuneAllowed}"
                 Text="Tell me my fortune"
-                Command="{Binding FortuneCommand}"
+                Command="{Binding GetFortuneCommand}"
                 Margin="0,0,0,25"
                 HorizontalOptions="Center"
                 Clicked="SpecialInteraction_OnClicked">

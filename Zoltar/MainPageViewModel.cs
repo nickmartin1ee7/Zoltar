@@ -1,6 +1,4 @@
-﻿using System.ComponentModel;
-using System.Net.Http.Json;
-using System.Runtime.CompilerServices;
+﻿using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Windows.Input;
@@ -26,17 +24,11 @@ public partial class MainPageViewModel : ObservableObject
     private readonly IFeatureManager _featureManager;
     private readonly IAlarmScheduler _alarmScheduler;
 
-    private ZoltarSettings _settings => _configProvider
+    private ZoltarSettings Settings => _configProvider
         .Configure()
         .GetSection(nameof(ZoltarSettings))
         .Get<ZoltarSettings>();
 
-    private string _fortuneHeader = DEFAULT_FORTUNE_HEADER;
-    private string _fortuneText;
-    private string _waitTimeText;
-    private bool _fortuneAllowed;
-    private bool _isLoading;
-    private bool _waitTimeVisible;
     private bool _initialized;
     private int _specialInteractions;
     private UserProfile _userProfile;
@@ -52,21 +44,101 @@ public partial class MainPageViewModel : ObservableObject
         _alarmScheduler = alarmScheduler;
         _logger = logger;
         _client = httpClient;
-
-        FortuneCommand = new Command(
-            execute: async () => await GetFortuneAsync(),
-            canExecute: () => FortuneAllowed);
-
-        OnboardCommand = new Command(
-            execute: async () => await OnboardUserAsync());
     }
 
-    public Command OnboardCommand { get; set; }
+    [ObservableProperty]
+    private string _fortuneHeader = DEFAULT_FORTUNE_HEADER;
 
-    private async Task OnboardUserAsync()
+    [ObservableProperty]
+    private string _fortuneText;
+
+    [ObservableProperty]
+    private string _waitTimeText;
+
+    [ObservableProperty]
+    private bool _isLoading;
+
+    [ObservableProperty]
+    private bool _waitTimeVisible;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(GetFortuneCommand))]
+    private bool _fortuneAllowed;
+
+    [RelayCommand(CanExecute = nameof(FortuneAllowed))]
+    private async Task GetFortune()
+    {
+        try
+        {
+            if (!FortuneAllowed)
+            {
+                return;
+            }
+
+            FortuneAllowed = false;
+            IsLoading = true;
+
+            _logger.LogInformation("User requested fortune");
+
+            GenerateResponse result = null;
+            HttpResponseMessage response = null;
+
+            try
+            {
+                var (Context, Luck) = BuildPrompt(_userProfile);
+                var requestContent = JsonContent.Create(Context);
+                requestContent.Headers.Add("X-API-KEY", Settings.Api.ApiKey);
+
+                response = await _client.PostAsync($"{Settings.Api.Url}/generate", requestContent);
+                result = await response.Content.ReadFromJsonAsync<GenerateResponse>();
+                result.luckText ??= Luck;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Failed to communicate API. Response code: {responseCode}", response?.StatusCode);
+            }
+
+            if (result?.fortune is null)
+            {
+                _logger.LogWarning("User saw no fortune");
+
+                FortuneHeader = DEFAULT_FORTUNE_HEADER;
+                FortuneText = "Zoltar remains silent.";
+                FortuneAllowed = true;
+                return;
+            }
+
+            SetValuesFromApiResponse(result);
+
+            await SaveLastFortune(result);
+
+            if (_userProfile.AnnounceFortune)
+            {
+                _ = Task.Run(async () =>
+                    await TextToSpeech.SpeakAsync(FortuneText));
+            }
+
+            FortuneAllowed = await CanReadFortuneAsync(autoUpdateWhenAllowed: true);
+
+            _logger.LogInformation("User received fortune");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task OnboardUser()
     {
         _logger.LogInformation("Onboarding user");
         await Shell.Current.GoToAsync($"///{nameof(OnboardingPage)}");
+    }
+
+    [RelayCommand]
+    private async Task ShowPreviousFortunes()
+    {
+        await Shell.Current.GoToAsync($"///{nameof(PreviousFortunesPage)}");
     }
 
     private async Task TrySetLastFortuneTextAsync()
@@ -203,66 +275,6 @@ public partial class MainPageViewModel : ObservableObject
     private static bool AreDeviceNotificationsEnabled() =>
         AndroidX.Core.App.NotificationManagerCompat.From(Platform.CurrentActivity!).AreNotificationsEnabled();
 
-    private async Task GetFortuneAsync()
-    {
-        try
-        {
-            if (!FortuneAllowed)
-                return;
-
-            FortuneAllowed = false;
-            IsLoading = true;
-
-            _logger.LogInformation("User requested fortune");
-
-            GenerateResponse result = null;
-            HttpResponseMessage response = null;
-
-            try
-            {
-                var (Context, Luck) = BuildPrompt(_userProfile);
-                var requestContent = JsonContent.Create(Context);
-                requestContent.Headers.Add("X-API-KEY", _settings.Api.ApiKey);
-
-                response = await _client.PostAsync($"{_settings.Api.Url}/generate", requestContent);
-                result = await response.Content.ReadFromJsonAsync<GenerateResponse>();
-                result.luckText ??= Luck;
-            }
-            catch (Exception exception)
-            {
-                _logger.LogError(exception, "Failed to communicate API. Response code: {responseCode}", response?.StatusCode);
-            }
-
-            if (result?.fortune is null)
-            {
-                _logger.LogWarning("User saw no fortune");
-
-                FortuneHeader = DEFAULT_FORTUNE_HEADER;
-                FortuneText = "Zoltar remains silent.";
-                FortuneAllowed = true;
-                return;
-            }
-
-            SetValuesFromApiResponse(result);
-
-            await SaveLastFortune(result);
-
-            if (_userProfile.AnnounceFortune)
-            {
-                _ = Task.Run(async () =>
-                    await TextToSpeech.SpeakAsync(FortuneText));
-            }
-
-            FortuneAllowed = await CanReadFortuneAsync(autoUpdateWhenAllowed: true);
-
-            _logger.LogInformation("User received fortune");
-        }
-        finally
-        {
-            IsLoading = false;
-        }
-    }
-
     private static async Task SaveLastFortune(GenerateResponse result)
     {
         // Set last fortune
@@ -277,7 +289,7 @@ public partial class MainPageViewModel : ObservableObject
         {
             previousFortunes = JsonSerializer.Deserialize<List<TimestampedGenerateReponse>>(previousFortunesRaw);
         }
-        previousFortunes.Add(new (result, DateTime.Now));
+        previousFortunes.Add(new(result, DateTime.Now));
         await SecureStorage.SetAsync(Constants.PREVIOUS_FORTUNES_KEY, JsonSerializer.Serialize(previousFortunes));
     }
 
@@ -340,7 +352,7 @@ public partial class MainPageViewModel : ObservableObject
 
             if (string.IsNullOrEmpty(userProfileJson))
             {
-                await OnboardUserAsync();
+                await OnboardUser();
                 userProfileJson = await SecureStorage.GetAsync(Constants.USER_PROFILE_KEY);
             }
 
@@ -365,80 +377,5 @@ public partial class MainPageViewModel : ObservableObject
         _specialInteractions = 0;
         FortuneAllowed = await CanReadFortuneAsync(skipWait: true);
         WaitTimeText = "Zoltar grants you another fortune.";
-    }
-
-    public string FortuneHeader
-    {
-        get => _fortuneHeader;
-        set
-        {
-            if (value == _fortuneHeader) return;
-            _fortuneHeader = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public string FortuneText
-    {
-        get => _fortuneText;
-        set
-        {
-            if (value == _fortuneText) return;
-            _fortuneText = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public bool FortuneAllowed
-    {
-        get => _fortuneAllowed;
-        set
-        {
-            if (value == _fortuneAllowed) return;
-            _fortuneAllowed = value;
-            OnPropertyChanged();
-            ((Command)FortuneCommand).ChangeCanExecute();
-        }
-    }
-
-    public bool IsLoading
-    {
-        get => _isLoading;
-        set
-        {
-            if (value == _isLoading) return;
-            _isLoading = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public bool WaitTimeVisible
-    {
-        get => _waitTimeVisible;
-        set
-        {
-            if (value == _waitTimeVisible) return;
-            _waitTimeVisible = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public string WaitTimeText
-    {
-        get => _waitTimeText;
-        set
-        {
-            if (value == _waitTimeText) return;
-            _waitTimeText = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public ICommand FortuneCommand { get; }
-
-    [RelayCommand]
-    private async Task PreviousFortunes()
-    {
-        await Shell.Current.GoToAsync($"///{nameof(PreviousFortunesPage)}");
     }
 }
