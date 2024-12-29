@@ -4,10 +4,11 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:Zoltar"
-    Shell.FlyoutBehavior="Flyout">
+    Shell.FlyoutBehavior="Flyout"
+    FlyoutBackgroundColor="{AppThemeBinding Light='#E1E1E1', Dark='#141414'}">
 	<Shell.FlyoutHeaderTemplate>
 		<DataTemplate>
-			<VerticalStackLayout>
+            <VerticalStackLayout Background="{AppThemeBinding Light='#E1E1E1', Dark='#141414'}">
 				<Label
 					Margin="8,16,8,8"
 					Text="Zoltar, The Fortune Teller"
