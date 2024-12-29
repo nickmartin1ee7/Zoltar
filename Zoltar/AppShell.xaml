@@ -5,7 +5,22 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:Zoltar"
     Shell.FlyoutBehavior="Flyout">
-
+	<Shell.FlyoutHeaderTemplate>
+		<DataTemplate>
+			<VerticalStackLayout>
+				<Label
+					Margin="8,16,8,8"
+					Text="Zoltar, The Fortune Teller"
+					FontSize="Large"
+					FontAttributes="Bold"
+					HorizontalOptions="Center"/>
+				<BoxView
+					Margin="8,8"
+					BackgroundColor="Black"
+					HeightRequest="1" />
+			</VerticalStackLayout>
+		</DataTemplate>
+	</Shell.FlyoutHeaderTemplate>
 	<FlyoutItem
 		Title="🔮 Fortune Teller"
 		Route="MainPage">
