@@ -33,11 +33,11 @@
                     <HtmlWebViewSource>
                         <HtmlWebViewSource.Html>
                             <![CDATA[
-                                <HTML>
-                                <BODY>
-                                <img src="zoltar.gif" style="width: 100%"/>
-                                </BODY>
-                                </HTML>
+                                <html>
+                                    <body>
+                                        <img src="zoltar.gif" style="width: 100%"/>
+                                    </body>
+                                </html>
                             ]]>
                         </HtmlWebViewSource.Html>
                     </HtmlWebViewSource>

@@ -34,6 +34,7 @@ namespace Zoltar
                 var aacConnStr = tempConfig.GetConnectionString("aac");
 
                 _config = configBuilder
+                    .AddConfiguration(tempConfig)
                     .AddAzureAppConfiguration(options =>
                     {
                         options.ConfigureClientOptions(configure =>
@@ -49,7 +50,7 @@ namespace Zoltar
                     .Build();
                 _hadError = false;
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
                 _config = configBuilder
                     .AddConfiguration(tempConfig)

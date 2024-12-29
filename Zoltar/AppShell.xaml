@@ -4,17 +4,25 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:Zoltar"
-    Shell.FlyoutBehavior="Disabled">
+    Shell.FlyoutBehavior="Flyout">
 
-    <ShellContent
-        Title="Home"
-        ContentTemplate="{DataTemplate local:MainPage}"
-        Route="MainPage" />
-
-    <ShellContent
-        Title="Onboarding"
-        ContentTemplate="{DataTemplate local:OnboardingPage}"
-        Route="OnboardingPage"
-        />
-
+	<FlyoutItem
+		Title="🔮Fortune Teller"
+		Route="MainPage">
+		<ShellContent
+            ContentTemplate="{DataTemplate local:MainPage}" />
+	</FlyoutItem>
+	<FlyoutItem
+		Title="🥠Previous Fortunes"
+		Route="PreviousFortunesPage">
+		<ShellContent
+            ContentTemplate="{DataTemplate local:MainPage}" />
+	</FlyoutItem>
+	<FlyoutItem
+		Title="⚙️Onboarding"
+		Route="OnboardingPage">
+		<ShellContent
+            Title="Onboarding"
+            ContentTemplate="{DataTemplate local:OnboardingPage}" />
+	</FlyoutItem>
 </Shell>

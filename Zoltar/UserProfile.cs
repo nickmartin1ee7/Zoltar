@@ -16,6 +16,7 @@ public record UserProfile
         <= .30 => "somewhat unfortunate",
         _ => "average",
     }}";
+
     public string Sign
     {
         get

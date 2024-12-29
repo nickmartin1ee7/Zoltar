@@ -275,17 +275,22 @@ public class MainPageViewModel : INotifyPropertyChanged
         var luck = userProfile.Luck;
 
         contextSb.Append($"The today is {DateTime.Now.ToShortDateString()}. " +
-                      $"You know the stranger is named {userProfile.Name}, " +
-                      $"their birthday is {userProfile.Birthday:d}, ");
+                      $"You know the stranger is named {userProfile.Name}, ");
+
+        if (userProfile.Birthday.HasValue)
+        {
+            contextSb.Append($"their birthday is {userProfile.Birthday:d}, ");
+        }
 
         if (userProfile.UseAstrology)
         {
             contextSb.Append($"their astrological sign is {userProfile.Sign} (mention their sign), ");
         }
 
+        // Final line
         contextSb.AppendLine($"and their fortune today is {luck}.");
 
-        return (contextSb.ToString(), luck);
+        return (contextSb.ToString().Trim(), luck);
     }
 
     public async Task InitializeAsync()
