@@ -116,6 +116,28 @@
                     <EventTrigger Event="Clicked">
                         <animations:ShakeAnimation Duration="5000" />
                     </EventTrigger>
+                    <DataTrigger
+                        TargetType="Button"
+                        Binding="{Binding IsFortuneAllowed}"
+                        Value="True">
+                        <Setter
+                            Property="Text"
+                            Value="Divine My Fortune"/>
+                        <Setter
+                            Property="IsEnabled"
+                            Value="True"/>
+                    </DataTrigger>
+                    <DataTrigger
+                        TargetType="Button"
+                        Binding="{Binding IsFortuneAllowed}"
+                        Value="False">
+                        <Setter
+                            Property="Text"
+                            Value="Your fate has been sealed"/>
+                        <Setter
+                            Property="IsEnabled"
+                            Value="False"/>
+                    </DataTrigger>
                 </Button.Triggers>
             </Button>
 
