@@ -46,6 +46,7 @@ public static class MauiProgram
             .AddTransient<IAlarmScheduler, AlarmScheduler>()
             .AddTransient<PreviousFortunesViewModel>()
             .AddTransient<PreviousFortunesPage>()
+            .AddTransient<OnboardingViewModel>()
             .AddTransient<OnboardingPage>()
             .AddTransient<MainPageViewModel>()
             .AddTransient<MainPage>()
