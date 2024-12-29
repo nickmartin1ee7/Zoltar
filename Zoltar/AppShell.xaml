@@ -7,19 +7,19 @@
     Shell.FlyoutBehavior="Flyout">
 
 	<FlyoutItem
-		Title="🔮Fortune Teller"
+		Title="🔮 Fortune Teller"
 		Route="MainPage">
 		<ShellContent
             ContentTemplate="{DataTemplate local:MainPage}" />
 	</FlyoutItem>
 	<FlyoutItem
-		Title="🥠Previous Fortunes"
+		Title="🥠 Previous Fortunes"
 		Route="PreviousFortunesPage">
 		<ShellContent
             ContentTemplate="{DataTemplate local:MainPage}" />
 	</FlyoutItem>
 	<FlyoutItem
-		Title="⚙️Onboarding"
+		Title="⚙️ Onboarding"
 		Route="OnboardingPage">
 		<ShellContent
             Title="Onboarding"
