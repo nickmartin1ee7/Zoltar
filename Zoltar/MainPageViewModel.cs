@@ -1,7 +1,6 @@
 ﻿using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using System.Windows.Input;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -179,12 +178,16 @@ public partial class MainPageViewModel : ObservableObject
             WaitTimeVisible = false;
 
             if (await _featureManager.IsEnabledAsync(Constants.FEATURE_ZOLTAR_UNLIMITED))
+            {
                 return true;
+            }
 
             var lastFortune = await SecureStorage.GetAsync(Constants.LAST_FORTUNE_USE_KEY);
 
             if (string.IsNullOrEmpty(lastFortune))
+            {
                 return true;
+            }
 
             var lastFortuneTime = DateTimeOffset.Parse(lastFortune);
 
@@ -195,7 +198,9 @@ public partial class MainPageViewModel : ObservableObject
 #endif
 
             if (DateTimeOffset.Now > next)
+            {
                 return true;
+            }
 
             WaitTimeText = $"Your fate changes at {next:MMM d h:mm:ss tt}";
             WaitTimeVisible = true;
@@ -214,7 +219,9 @@ public partial class MainPageViewModel : ObservableObject
             }
 
             if (skipWait)
+            {
                 return true;
+            }
 
             return false;
         }
@@ -232,7 +239,7 @@ public partial class MainPageViewModel : ObservableObject
 
         try
         {
-            if (!bool.TryParse(await SecureStorage.GetAsync("prompt_notifications"), out shouldPrompt))
+            if (!bool.TryParse(await SecureStorage.GetAsync(Constants.PROMPT_NOTIFICATIONS_KEY), out shouldPrompt))
             {
                 await SetPromptNotificationsAsync(shouldPrompt = true); // Default to prompt user
             }
@@ -269,7 +276,7 @@ public partial class MainPageViewModel : ObservableObject
 
     private static async Task SetPromptNotificationsAsync(bool shouldPrompt)
     {
-        await SecureStorage.SetAsync("prompt_notifications", shouldPrompt.ToString());
+        await SecureStorage.SetAsync(Constants.PROMPT_NOTIFICATIONS_KEY, shouldPrompt.ToString());
     }
 
     private static bool AreDeviceNotificationsEnabled() =>
@@ -333,7 +340,9 @@ public partial class MainPageViewModel : ObservableObject
         FortuneAllowed = await CanReadFortuneAsync(autoUpdateWhenAllowed: true);
 
         if (_initialized)
+        {
             return;
+        }
 
         Distribute.CheckForUpdate();
 
@@ -367,12 +376,16 @@ public partial class MainPageViewModel : ObservableObject
     public async Task InvokeSpecialInteractionAsync()
     {
         if (!(await _featureManager.IsEnabledAsync(Constants.FEATURE_ZOLTAR_SECRET_INTERACTION)))
+        {
             return;
+        }
 
         _specialInteractions++;
 
         if (_specialInteractions < MAX_SPECIAL_INTERACTIONS)
+        {
             return;
+        }
 
         _specialInteractions = 0;
         FortuneAllowed = await CanReadFortuneAsync(skipWait: true);

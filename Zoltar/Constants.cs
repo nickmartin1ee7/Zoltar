@@ -16,5 +16,6 @@
         public const string LAST_FORTUNE_USE_KEY = "LAST_FORTUNE_USE";
         public const string USER_PROFILE_KEY = "USER_PROFILE";
         public const string PREVIOUS_FORTUNES_KEY = "previous_fortunes";
+        public const string PROMPT_NOTIFICATIONS_KEY = "prompt_notifications";
     }
 }
