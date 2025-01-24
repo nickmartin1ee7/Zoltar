@@ -111,10 +111,12 @@ public partial class MainPageViewModel(
                 && !string.IsNullOrWhiteSpace(FortuneBodyText)
                 && !string.IsNullOrWhiteSpace(FortuneLuckText))
             {
-                _ = Task.Run(async () => await TextToSpeech.SpeakAsync($"Your luck is {FortuneLuckText}. " +
-                    FortuneHeaderText +
-                    " - " +
-                    FortuneLuckText));
+                var textToSaySb = new StringBuilder()
+                    .AppendLine(FortuneHeaderText)
+                    .AppendLine(" - ")
+                    .AppendLine(FortuneBodyText)
+                    .AppendLine(FortuneLuckText);
+                _ = Task.Run(async () => await TextToSpeech.SpeakAsync(textToSaySb.ToString()));
             }
 
             IsFortuneAllowed = await CanReadFortuneAsync(autoUpdateWhenAllowed: true);

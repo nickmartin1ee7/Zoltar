@@ -45,7 +45,7 @@ public partial class OnboardingViewModel : ObservableObject
             {
                 Name = userProfile.Name;
                 Birthday = userProfile.Birthday?.ToShortDateString();
-                UseAstrology = userProfile.UseAstrology;
+                UseAstrology = userProfile.Birthday is not null && userProfile.UseAstrology;
                 AnnounceFortune = userProfile.AnnounceFortune;
             }
         }
@@ -66,8 +66,9 @@ public partial class OnboardingViewModel : ObservableObject
             return;
         }
 
-        DateTime? birthday = null;
-        if (!string.IsNullOrEmpty(Birthday) && !DateTime.TryParse(Birthday, out var parsedBirthday))
+        DateTime birthday = default;
+        if (!string.IsNullOrEmpty(Birthday)
+            && !DateTime.TryParse(Birthday, out birthday))
         {
             await _alertFunc("Error", "Invalid birthday format. Please use the format: MM/DD/YYYY", "OK");
             return;
