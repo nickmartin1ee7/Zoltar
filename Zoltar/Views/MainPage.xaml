@@ -57,7 +57,8 @@
                 FontSize="Title"
                 FontAttributes="Bold"
                 HorizontalOptions="Center"
-                VerticalOptions="Start">
+                VerticalOptions="Start"
+                IsSpellCheckEnabled="False">
                 <Editor.Triggers>
                     <EventTrigger Event="TextChanged">
                         <animations:FadeInAnimation Duration="1000" />
@@ -74,7 +75,8 @@
                 AutoSize="TextChanges"
                 FontSize="Large"
                 VerticalTextAlignment="Center"
-                HorizontalTextAlignment="Center">
+                HorizontalTextAlignment="Center"
+                IsSpellCheckEnabled="False">
                 <Editor.Triggers>
                     <EventTrigger Event="TextChanged">
                         <animations:FadeInAnimation Duration="1500" />
@@ -92,7 +94,8 @@
                 FontSize="Medium"
                 FontAttributes="Italic"
                 VerticalTextAlignment="Center"
-                HorizontalTextAlignment="Center">
+                HorizontalTextAlignment="Center"
+                IsSpellCheckEnabled="False">
                 <Editor.Triggers>
                     <EventTrigger Event="TextChanged">
                         <animations:FadeInAnimation Duration="2000" />

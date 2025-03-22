@@ -25,14 +25,15 @@ public partial class MainPageViewModel(
 {
     private const int MAX_SPECIAL_INTERACTIONS = 5;
 
+    private bool _initialized;
+    private int _specialInteractions;
+    private UserProfile? _userProfile;
+    private CancellationTokenSource? _announceFortuneCts;
+
     private ZoltarSettings Settings => configProvider
         .Configure()
         .GetSection(nameof(ZoltarSettings))
         .Get<ZoltarSettings>()!;
-
-    private bool _initialized;
-    private int _specialInteractions;
-    private UserProfile? _userProfile;
 
     [ObservableProperty]
     private string? _fortuneHeaderText;
@@ -55,6 +56,12 @@ public partial class MainPageViewModel(
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(GetFortuneCommand))]
     private bool _isFortuneAllowed;
+
+    [RelayCommand]
+    private void TryCancelAnnounceFortune()
+    {
+        _announceFortuneCts?.Cancel();
+    }
 
     [RelayCommand(CanExecute = nameof(IsFortuneAllowed))]
     private async Task GetFortune()
@@ -116,7 +123,18 @@ public partial class MainPageViewModel(
                     .AppendLine(" - ")
                     .AppendLine(FortuneBodyText)
                     .AppendLine(FortuneLuckText);
-                _ = Task.Run(async () => await TextToSpeech.SpeakAsync(textToSaySb.ToString()));
+
+                _announceFortuneCts = new();
+
+                _ = Task.Run(async () =>
+                {
+                    await TextToSpeech.SpeakAsync(
+                        text: textToSaySb.ToString(),
+                        cancelToken: _announceFortuneCts?.Token ?? CancellationToken.None
+                        );
+
+                    _announceFortuneCts = null;
+                });
             }
 
             IsFortuneAllowed = await CanReadFortuneAsync(autoUpdateWhenAllowed: true);
