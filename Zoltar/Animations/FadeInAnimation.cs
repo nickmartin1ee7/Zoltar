@@ -7,6 +7,6 @@ public class FadeInAnimation : TriggerAction<VisualElement>
     protected override async void Invoke(VisualElement sender)
     {
         sender.Opacity = 0;
-        await sender.FadeTo(1, Duration);
+        await sender.FadeToAsync(1, Duration);
     }
 }

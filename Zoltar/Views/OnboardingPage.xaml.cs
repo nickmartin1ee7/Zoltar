@@ -14,7 +14,13 @@ public partial class OnboardingPage : ContentPage
     {
         base.OnAppearing();
 
-        ArgumentNullException.ThrowIfNull(Application.Current?.MainPage);
-        await _vm.InitializeAsync(Application.Current.MainPage.DisplayAlert);
+        var page = Application.Current?.Windows.FirstOrDefault()?.Page;
+        if (page is null)
+        {
+            return;
+        }
+
+        await _vm.InitializeAsync(
+            (title, message, accept) => page.DisplayAlertAsync(title, message, accept));
     }
 }

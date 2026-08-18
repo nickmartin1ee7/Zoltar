@@ -9,66 +9,57 @@ jobs:
   mobile:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3      
-      - name: Print Directory Structure
-        shell: pwsh
-        run: |
-          Get-ChildItem -Recurse
-      - name: Replace values in appsettings.json
-        run: |
-          $appSettingsPath = (Get-ChildItem -Path . -Filter appsettings.json -Recurse -Force | Select-Object -First 1).FullName
-          echo "Reading from: $manifestPath"
-          $appSettings = Get-Content $appSettingsPath -Raw | ConvertFrom-Json
-          echo "Original: $appSettings"
-          
-          $appSettings.ConnectionStrings.aac = "${{ secrets.aac }}"
-          
-          $replacedAppSettings = $appSettings | ConvertTo-Json
-          echo "Replaced: $replacedAppSettings"
-          
-          $replacedAppSettings | Set-Content $appSettingsPath
-          echo "Read-back appsettings.json:"
-          Get-Content $appSettingsPath
+      - uses: actions/checkout@v4
+
       - name: Setup .NET
-        uses: actions/setup-dotnet@v2
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
-      - uses: actions/setup-java@v2
+          dotnet-version: 10.0.x
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
           distribution: 'microsoft'
-          java-version: '11'
+          java-version: '17'
+
       - name: Install MAUI Workloads
         run: |
-          dotnet workload install android --ignore-failed-sources
-          dotnet workload install maui --ignore-failed-sources
-      - name: Set Android version
+          dotnet workload install maui-android android --ignore-failed-sources
+
+      - name: Run Unit Tests
+        run: dotnet test ./Zoltar.Tests/Zoltar.Tests.csproj
+
+      - name: Inject Azure App Configuration connection string
+        shell: pwsh
         run: |
-          $manifestPath = (Get-ChildItem -Path . -Filter Zoltar.csproj -Recurse -ErrorAction SilentlyContinue -Force | Select-Object -First 1).FullName
-          echo "Reading from: $manifestPath"
-          
+          $appSettingsPath = Resolve-Path ./Zoltar/Resources/appsettings.json
+          $appSettings = Get-Content $appSettingsPath -Raw | ConvertFrom-Json
+          $appSettings.ConnectionStrings.aac = "${{ secrets.aac }}"
+          ($appSettings | ConvertTo-Json -Depth 10) | Set-Content $appSettingsPath
+
+      - name: Set Android version
+        shell: pwsh
+        run: |
+          $csprojPath = Resolve-Path ./Zoltar/Zoltar.csproj
           $versionName = "${{ vars.APP_VERSION }}.${{ github.run_number }}"
-          $versionCode = "${{ github.run_number }}"
+          $versionCode  = "${{ github.run_number }}"
 
-          # Read the AndroidManifest.xml file
-          $manifestContent = Get-Content -Path $manifestPath
+          $content = Get-Content $csprojPath
+          $content = $content -replace "<ApplicationDisplayVersion>\d+\.\d+</ApplicationDisplayVersion>", "<ApplicationDisplayVersion>$versionName</ApplicationDisplayVersion>"
+          $content = $content -replace "<ApplicationVersion>\d+</ApplicationVersion>", "<ApplicationVersion>$versionCode</ApplicationVersion>"
+          $content | Set-Content $csprojPath
 
-          # Find and replace the displayed version
-          $manifestContent = $manifestContent -replace "<ApplicationDisplayVersion>\d+\.\d+</ApplicationDisplayVersion>", "<ApplicationDisplayVersion>$versionName</ApplicationDisplayVersion>"
-
-          # Find and replace the version
-          $manifestContent = $manifestContent -replace "<ApplicationVersion>\d+</ApplicationVersion>", "<ApplicationVersion>$versionCode</ApplicationVersion>"
-
-          # Write the modified content back to the AndroidManifest.xml file
-          $manifestContent | Set-Content -Path $manifestPath
       - name: Publish
-        run: dotnet publish ./Zoltar/Zoltar.csproj -f net8.0-android -c Release -o release
+        run: dotnet publish ./Zoltar/Zoltar.csproj -f net10.0-android -c Release -o release
+
       - name: Upload a Build Artifact
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v4
         with:
+          name: zoltar-apk
           path: "release/*-Signed.apk"
-      
+
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: "v${{ vars.APP_VERSION }}.${{ github.run_number }}"
           name: Zoltar v${{ vars.APP_VERSION }}.${{ github.run_number }}

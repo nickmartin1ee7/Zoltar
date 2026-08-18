@@ -5,7 +5,6 @@ using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-using Microsoft.AppCenter.Distribute;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.FeatureManagement;
@@ -270,7 +269,7 @@ public partial class MainPageViewModel(
 
         if (shouldPrompt && !AreDeviceNotificationsEnabled())
         {
-            var userPermissionResult = await Application.Current!.MainPage!.DisplayAlert(
+            var userPermissionResult = await Application.Current!.Windows[0].Page!.DisplayAlertAsync(
                 "Enable Notifications",
                 "To be notified when a New Fortune is ready, please enable the notification permission for this app.",
                 "Go to Settings",
@@ -365,8 +364,6 @@ public partial class MainPageViewModel(
         {
             return;
         }
-
-        Distribute.CheckForUpdate();
 
         await TrySetLastFortuneTextAsync();
 

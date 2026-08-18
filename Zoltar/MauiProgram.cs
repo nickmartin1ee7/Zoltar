@@ -1,8 +1,6 @@
-﻿using Microsoft.AppCenter.Distribute;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.FeatureManagement;
-using Microsoft.Maui.Controls.Compatibility.Platform.Android;
 
 using Serilog;
 
@@ -19,10 +17,6 @@ public static class MauiProgram
         {
             Log.CloseAndFlush();
         };
-
-        Distribute.UpdateTrack = UpdateTrack.Public;
-        Distribute.SetEnabledAsync(true).GetAwaiter().GetResult();
-        Distribute.CheckForUpdate();
 
         var builder = MauiApp.CreateBuilder();
         builder
@@ -69,13 +63,7 @@ public static class MauiProgram
                         apiKey: zoltarSettingsSnapshot?.Telemetry?.Key ?? string.Empty)
                     .CreateLogger());
 
-                if (zoltarSettingsSnapshot?.AppCenter?.Secret is null)
-                    return;
-
-                loggingBuilder
-                    .AddAppCenter(appCenterLoggerOptions =>
-                        appCenterLoggerOptions.AppCenterAndroidSecret = zoltarSettingsSnapshot.AppCenter.Secret);
-            })
+                })
             .AddFeatureManagement();
 
         SetCustomHandlers();
@@ -88,7 +76,7 @@ public static class MauiProgram
         Microsoft.Maui.Handlers.EditorHandler.Mapper.AppendToMapping("NoUnderline", (h, v) =>
         {
             // Set underline color to transparent for Android
-            h.PlatformView.BackgroundTintList = Android.Content.Res.ColorStateList.ValueOf(Colors.Transparent.ToAndroid());
+            h.PlatformView.BackgroundTintList = Android.Content.Res.ColorStateList.ValueOf(Android.Graphics.Color.Transparent);
         });
     }
 }

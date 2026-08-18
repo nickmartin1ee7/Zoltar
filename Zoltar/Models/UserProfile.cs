@@ -6,7 +6,9 @@ public record UserProfile
     public DateTime? Birthday { get; set; }
     public bool UseAstrology { get; set; }
     public bool AnnounceFortune { get; set; }
-    public string Luck => $"{Random.Shared.NextDouble() switch
+    public string Luck => GetLuck(Random.Shared.NextDouble());
+
+    internal static string GetLuck(double value) => value switch
     {
         >= .85 => "incredibly fortunate",
         <= .10 => "incredibly unfortunate",
@@ -15,7 +17,7 @@ public record UserProfile
         >= .60 => "somewhat fortunate",
         <= .30 => "somewhat unfortunate",
         _ => "average",
-    }}";
+    };
 
     public string Sign
     {

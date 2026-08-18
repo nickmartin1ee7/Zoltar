@@ -2,15 +2,8 @@
 
 public class ZoltarSettings
 {
-    public AppCenterSettings? AppCenter { get; set; }
-
     public ApiSettings? Api { get; set; }
     public TelemetrySettings? Telemetry { get; set; }
-
-    public class AppCenterSettings
-    {
-        public string? Secret { get; set; }
-    }
 
     public class ApiSettings
     {

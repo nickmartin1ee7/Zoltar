@@ -2,7 +2,7 @@
 
 A (mis)fortune-telling mobile app. It will tell your fortune once a day!
 
-Powered by GPT-3, this app will never tell the same fortune twice.
+Powered by GPT, this app will never tell you the same fortune twice.
 
 ## Supported Platforms:
 * Android
