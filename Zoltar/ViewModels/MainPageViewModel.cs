@@ -28,6 +28,7 @@ public partial class MainPageViewModel(
     private int _specialInteractions;
     private UserProfile? _userProfile;
     private CancellationTokenSource? _announceFortuneCts;
+    private CancellationTokenSource? _autoUnlockCts;
 
     private ZoltarSettings Settings => configProvider
         .Configure()
@@ -223,12 +224,24 @@ public partial class MainPageViewModel(
 
             if (autoUpdateWhenAllowed)
             {
+                _autoUnlockCts?.Cancel();
+                _autoUnlockCts?.Dispose();
+                _autoUnlockCts = new CancellationTokenSource();
+
+                var token = _autoUnlockCts.Token;
                 _ = Task.Run(async () =>
                 {
-                    var untilNextRun = next.Subtract(DateTimeOffset.Now);
-                    await Task.Delay(untilNextRun);
-                    IsFortuneAllowed = await CanReadFortuneAsync();
-                });
+                    try
+                    {
+                        var untilNextRun = next.Subtract(DateTimeOffset.Now);
+                        await Task.Delay(untilNextRun, token);
+                        IsFortuneAllowed = await CanReadFortuneAsync();
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Superseded by a newer unlock timer; do nothing.
+                    }
+                }, token);
 
                 var unixTicksInMs = next.ToUnixTimeMilliseconds();
                 alarmScheduler.ScheduleNotification(unixTicksInMs);
@@ -370,6 +383,12 @@ public partial class MainPageViewModel(
         _initialized = true;
 
         logger.LogInformation("Application initialized");
+    }
+
+    public void OnPageDisappearing()
+    {
+        _autoUnlockCts?.Cancel();
+        _announceFortuneCts?.Cancel();
     }
 
     public async Task TryOnboardNewUserAsync()

@@ -25,7 +25,9 @@ public partial class MainPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-       
+
+        _vm.OnPageDisappearing();
+
         if (Application.Current?.Windows?.FirstOrDefault() is not null)
         {
             Application.Current.Windows[0].Deactivated -= Window_OnDeactivating;
