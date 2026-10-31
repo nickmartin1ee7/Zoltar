@@ -49,8 +49,21 @@ jobs:
           $content = $content -replace "<ApplicationVersion>\d+</ApplicationVersion>", "<ApplicationVersion>$versionCode</ApplicationVersion>"
           $content | Set-Content $csprojPath
 
+      - name: Decode release keystore
+        shell: pwsh
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          [IO.File]::WriteAllBytes("$env:GITHUB_WORKSPACE/zoltar.keystore", [Convert]::FromBase64String($env:KEYSTORE_B64))
+
       - name: Publish
-        run: dotnet publish ./Zoltar/Zoltar.csproj -f net10.0-android -c Release -o release
+        run: >-
+          dotnet publish ./Zoltar/Zoltar.csproj -f net10.0-android -c Release -o release
+          -p:AndroidKeyStore=true
+          -p:AndroidSigningKeyStore=zoltar.keystore
+          -p:AndroidSigningKeyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          -p:AndroidSigningStorePass=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          -p:AndroidSigningKeyPass=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
 
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v4
