@@ -361,7 +361,7 @@ public partial class MainPageViewModel(
         }
 
         // Final line
-        contextSb.AppendLine($"and their fortune today is {luck}.");
+        contextSb.AppendLine($"and, most importantly, their fortune today is {luck}.");
 
         return (contextSb.ToString().Trim(), luck);
     }
